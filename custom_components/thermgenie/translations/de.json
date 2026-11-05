@@ -1,0 +1,895 @@
+{
+  "title": "ThermGenie",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neuer Thermostat",
+        "description": "ThermGenie regelt auf den Fühler, an dem es wirklich zählt. Die Geräte bekommen dafür einen verschobenen Sollwert. Alles Weitere stellst du später unter **Konfigurieren** ein.",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Raumfühler",
+          "humidity_sensor": "Luftfeuchte",
+          "heaters": "Heizgeräte",
+          "cooler": "Klimaanlage",
+          "window_sensor": "Fensterkontakt"
+        },
+        "data_description": {
+          "name": "Zum Beispiel der Name des Raums.",
+          "temperature_sensor": "Der Fühler, dessen Wert im Raum zählt, zum Beispiel an der Couch.",
+          "humidity_sensor": "Optional. Damit rechnet ThermGenie Taupunkt, Humidex und gefühlte Temperatur selbst.",
+          "heaters": "Ein Thermostat kann mehrere Heizkörper eines Raums führen.",
+          "cooler": "Optional. Heizen und Kühlen laufen nie gleichzeitig.",
+          "window_sensor": "Optional. Bei offenem Fenster fällt die Heizung auf Frostschutz, die Klimaanlage geht aus."
+        }
+      },
+      "offsets": {
+        "title": "Versatz und Bremse je Heizkörper",
+        "description": "Heizkörper in diesem Thermostat:\n{devices}\n\nDer Versatz verschiebt den Sollwert, die Bremse wirkt beim Anfahren des Ziels. Ein großer Heizkörper, der stark nachheizt, braucht eine stärkere Bremse.",
+        "data": {
+          "offset_1": "Heizkörper 1: Versatz",
+          "offset_2": "Heizkörper 2: Versatz",
+          "offset_3": "Heizkörper 3: Versatz",
+          "offset_4": "Heizkörper 4: Versatz",
+          "offset_5": "Heizkörper 5: Versatz",
+          "offset_6": "Heizkörper 6: Versatz",
+          "kd_1": "Heizkörper 1: Bremse",
+          "kd_2": "Heizkörper 2: Bremse",
+          "kd_3": "Heizkörper 3: Bremse",
+          "kd_4": "Heizkörper 4: Bremse",
+          "kd_5": "Heizkörper 5: Bremse",
+          "kd_6": "Heizkörper 6: Bremse"
+        }
+      },
+      "presets": {
+        "title": "Temperaturen",
+        "description": "Heizen und Kühlen haben getrennte Werte, die Presets heißen gleich.",
+        "sections": {
+          "heating": {
+            "name": "Heizen",
+            "data": {
+              "heat_frost": "Frostschutz",
+              "heat_eco": "Eco",
+              "heat_comfort": "Komfort",
+              "heat_boost": "Boost"
+            },
+            "data_description": {
+              "heat_frost": "Gilt auch bei offenem Fenster."
+            }
+          },
+          "cooling": {
+            "name": "Kühlen",
+            "data": {
+              "cool_eco": "Eco",
+              "cool_comfort": "Komfort",
+              "cool_boost": "Boost"
+            }
+          }
+        }
+      },
+      "routines": {
+        "title": "Alltag und Meldungen",
+        "description": "Jede Funktion bleibt aus, solange ihre Entität fehlt.",
+        "sections": {
+          "messages": {
+            "name": "Meldungen",
+            "data": {
+              "notify_service": "Push-Dienst",
+              "tts_service": "Sprachausgabe-Dienst",
+              "tts_targets": "Lautsprecher",
+              "quiet_entity": "Keine Sprachausgabe, wenn an"
+            },
+            "data_description": {
+              "tts_service": "Nur für schwere Störungen wie ein klemmendes Ventil.",
+              "quiet_entity": "Zum Beispiel ein Fokus-Modus."
+            }
+          },
+          "daily": {
+            "name": "Tagesablauf",
+            "data": {
+              "presence_entity": "Anwesenheit",
+              "sleep_entity": "Schlafen",
+              "wake_entity": "Wecker",
+              "wake_lead_min": "Vorheizen vor dem Wecker",
+              "wake_fallback": "Vorheizen ohne Wecker um",
+              "wake_fallback_on": "Ohne Wecker trotzdem aufheizen",
+              "wake_fallback_entity": "Uhrzeit aus Entität"
+            },
+            "data_description": {
+              "sleep_entity": "Beim Heizen gilt Eco im Schlaf und bei Abwesenheit, sonst Komfort.",
+              "wake_fallback_on": "Aus: Ohne gestellten Wecker wird nicht vorgeheizt.",
+              "wake_fallback_entity": "Optional. Hat Vorrang vor der festen Uhrzeit. Bei Datum und Uhrzeit zählt nur die Uhrzeit."
+            }
+          },
+          "way_home": {
+            "name": "Heimweg",
+            "data": {
+              "approach_direction": "Richtung",
+              "approach_distance": "Entfernung",
+              "approach_below": "Vorheizen unter",
+              "approach_target": "Zieltemperatur"
+            },
+            "data_description": {
+              "approach_direction": "Sensor der Zone Home, der beim Annähern „towards“ meldet."
+            }
+          }
+        }
+      },
+      "outdoor": {
+        "title": "Warme Tage",
+        "description": "Sperrt das Heizen, solange es draußen warm ist. Der Wechsel braucht 30 Minuten Bestand.",
+        "data": {
+          "outdoor_sensor": "Außenfühler",
+          "outdoor_off_above": "Heizung sperren über",
+          "outdoor_on_below": "Sperre aufheben unter"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Ohne Fühler gibt es keine Sperre."
+        }
+      }
+    },
+    "error": {
+      "no_device": "Bitte mindestens ein Heizgerät oder eine Klimaanlage auswählen.",
+      "cooler_is_heater": "Ein Gerät kann nicht gleichzeitig Heizgerät und Klimaanlage sein.",
+      "too_many_heaters": "Es sind höchstens 6 Heizgeräte je Thermostat möglich.",
+      "frost_limits": "Das Ende des Frostschutzes muss über seinem Beginn liegen."
+    },
+    "abort": {
+      "already_configured": "Ein Thermostat mit diesem Namen gibt es bereits."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ThermGenie-Einstellungen",
+        "description": "Wähle einen Bereich. Änderungen werden erst mit **Speichern** übernommen.",
+        "menu_options": {
+          "devices": "Raum und Geräte",
+          "presets": "Temperaturen",
+          "regulation": "Regelung",
+          "routines": "Alltag und Meldungen",
+          "lock": "Heizsperre",
+          "summer": "Sommer",
+          "save": "Speichern und schließen",
+          "ai": "Per KI einrichten",
+          "outdoor": "Warme Tage",
+          "air": "Luft verteilen",
+          "valves": "Gerät halten und Ventile"
+        },
+        "menu_option_descriptions": {
+          "devices": "Raumfühler, Heizkörper, Klimaanlage und Fenster",
+          "presets": "Frostschutz, Eco, Komfort und Boost",
+          "regulation": "Stellschrauben des Reglers und selbstlernende Bremse",
+          "routines": "Push, Sprachausgabe, Schlafen, Wecker und Heimweg",
+          "lock": "Raum, der nicht heizen darf, nur Frost hebt die Sperre auf",
+          "summer": "Hitzeschutz, Entfeuchten und Nachtkaskade",
+          "save": "Einstellungen übernehmen, der Thermostat lädt neu",
+          "ai": "Die KI schlägt Geräte und Fühler vor, du prüfst alles vor dem Speichern",
+          "outdoor": "Heizung sperren, solange es draußen warm ist",
+          "air": "Ventilator gleicht die Luft im Raum aus, beim Heizen und Kühlen",
+          "valves": "Verstellen am Gerät zurücksetzen, offene Ventile melden"
+        }
+      },
+      "devices": {
+        "title": "Raum und Geräte",
+        "description": "Raumfühler, Heizkörper, Klimaanlage und Fenster.",
+        "data": {
+          "temperature_sensor": "Raumfühler",
+          "humidity_sensor": "Luftfeuchte",
+          "heaters": "Heizgeräte",
+          "cooler": "Klimaanlage",
+          "window_sensor": "Fensterkontakt"
+        },
+        "data_description": {
+          "temperature_sensor": "Der Fühler, dessen Wert im Raum zählt, zum Beispiel an der Couch.",
+          "humidity_sensor": "Optional. Damit rechnet ThermGenie Taupunkt, Humidex und gefühlte Temperatur selbst.",
+          "heaters": "Ein Thermostat kann mehrere Heizkörper eines Raums führen.",
+          "cooler": "Optional. Heizen und Kühlen laufen nie gleichzeitig.",
+          "window_sensor": "Optional. Bei offenem Fenster fällt die Heizung auf Frostschutz, die Klimaanlage geht aus."
+        }
+      },
+      "offsets": {
+        "title": "Versatz und Bremse je Heizkörper",
+        "description": "Heizkörper in diesem Thermostat:\n{devices}\n\nDer Versatz verschiebt den Sollwert, die Bremse wirkt beim Anfahren des Ziels. Ein großer Heizkörper, der stark nachheizt, braucht eine stärkere Bremse.",
+        "data": {
+          "offset_1": "Heizkörper 1: Versatz",
+          "offset_2": "Heizkörper 2: Versatz",
+          "offset_3": "Heizkörper 3: Versatz",
+          "offset_4": "Heizkörper 4: Versatz",
+          "offset_5": "Heizkörper 5: Versatz",
+          "offset_6": "Heizkörper 6: Versatz",
+          "kd_1": "Heizkörper 1: Bremse",
+          "kd_2": "Heizkörper 2: Bremse",
+          "kd_3": "Heizkörper 3: Bremse",
+          "kd_4": "Heizkörper 4: Bremse",
+          "kd_5": "Heizkörper 5: Bremse",
+          "kd_6": "Heizkörper 6: Bremse"
+        }
+      },
+      "presets": {
+        "title": "Temperaturen",
+        "description": "Heizen und Kühlen haben getrennte Werte, die Presets heißen gleich.",
+        "sections": {
+          "heating": {
+            "name": "Heizen",
+            "data": {
+              "heat_frost": "Frostschutz",
+              "heat_eco": "Eco",
+              "heat_comfort": "Komfort",
+              "heat_boost": "Boost"
+            },
+            "data_description": {
+              "heat_frost": "Gilt auch bei offenem Fenster."
+            }
+          },
+          "cooling": {
+            "name": "Kühlen",
+            "data": {
+              "cool_eco": "Eco",
+              "cool_comfort": "Komfort",
+              "cool_boost": "Boost"
+            }
+          }
+        }
+      },
+      "regulation": {
+        "title": "Regelung",
+        "description": "Die Standardwerte sind für die meisten Räume passend. Kleine Schritte, dann ein paar Tage beobachten.",
+        "sections": {
+          "heating": {
+            "name": "Heizen",
+            "data": {
+              "reference_heat": "Regeln nach",
+              "kp": "P-Anteil",
+              "ki": "I-Anteil",
+              "kd": "D-Anteil (Bremse)",
+              "offset_max": "Größte Sollwert-Verschiebung",
+              "integral_limit": "Grenze des I-Speichers",
+              "use_device_temp": "Sollwert auf den Gerätefühler umrechnen",
+              "heat_source": "Heizen mit"
+            },
+            "data_description": {
+              "reference_heat": "Auf diesen Wert wird geregelt.",
+              "kd": "K je K/h. Bremst, bevor das Ziel erreicht ist.",
+              "use_device_temp": "Für Geräte, deren eigener Fühler deutlich falsch misst, etwa direkt am warmen Heizkörper.",
+              "heat_source": "Kann die Klimaanlage nicht heizen, übernehmen die Heizkörper."
+            }
+          },
+          "learning": {
+            "name": "Lernen",
+            "data": {
+              "learn": "Bremse aus dem Überschwingen lernen",
+              "flow_sensor": "Vorlauffühler",
+              "tuning": "Regelung optimieren"
+            },
+            "data_description": {
+              "learn": "Passt den D-Anteil nach jeder sauberen Heizphase in kleinen, begrenzten Schritten an.",
+              "flow_sensor": "Optional. Gelernt wird dann getrennt nach Vorlauftemperatur.",
+              "tuning": "Misst die Heizphasen. „Nur beobachten“ macht Vorschläge, „Automatisch“ passt kp und ki in kleinen, begrenzten Schritten selbst an. Deine eingestellten Werte bleiben erhalten."
+            }
+          },
+          "cooling": {
+            "name": "Kühlen",
+            "data": {
+              "reference_cool": "Regeln nach",
+              "kp_cool": "P-Anteil",
+              "ki_cool": "I-Anteil",
+              "kd_cool": "D-Anteil (Bremse)",
+              "offset_max_cool": "Größte Sollwert-Verschiebung",
+              "integral_limit_cool": "Grenze des I-Speichers",
+              "fan_boost": "Lüfter bei großem Abstand hochdrehen"
+            },
+            "data_description": {
+              "reference_cool": "Humidex berücksichtigt die Schwüle, das passt im Sommer meist besser."
+            }
+          },
+          "timing": {
+            "name": "Zeiten und Funk",
+            "data": {
+              "period_min": "Regeltakt",
+              "dtemp": "Kleinster Schritt je Funkbefehl",
+              "boost_minutes": "Boost endet nach",
+              "sensor_timeout_min": "Raumfühler gilt als ausgefallen nach",
+              "window_open_delay": "Fenster offen: reagieren nach",
+              "window_close_delay": "Fenster zu: reagieren nach"
+            },
+            "data_description": {
+              "boost_minutes": "0 bedeutet: Boost bleibt, bis er geändert wird.",
+              "sensor_timeout_min": "Danach regelt das Gerät auf seinem eigenen Fühler."
+            }
+          }
+        }
+      },
+      "routines": {
+        "title": "Alltag und Meldungen",
+        "description": "Jede Funktion bleibt aus, solange ihre Entität fehlt.",
+        "sections": {
+          "messages": {
+            "name": "Meldungen",
+            "data": {
+              "notify_service": "Push-Dienst",
+              "tts_service": "Sprachausgabe-Dienst",
+              "tts_targets": "Lautsprecher",
+              "quiet_entity": "Keine Sprachausgabe, wenn an"
+            },
+            "data_description": {
+              "tts_service": "Nur für schwere Störungen wie ein klemmendes Ventil.",
+              "quiet_entity": "Zum Beispiel ein Fokus-Modus."
+            }
+          },
+          "daily": {
+            "name": "Tagesablauf",
+            "data": {
+              "presence_entity": "Anwesenheit",
+              "sleep_entity": "Schlafen",
+              "wake_entity": "Wecker",
+              "wake_lead_min": "Vorheizen vor dem Wecker",
+              "wake_fallback": "Vorheizen ohne Wecker um",
+              "wake_fallback_on": "Ohne Wecker trotzdem aufheizen",
+              "wake_fallback_entity": "Uhrzeit aus Entität"
+            },
+            "data_description": {
+              "sleep_entity": "Beim Heizen gilt Eco im Schlaf und bei Abwesenheit, sonst Komfort.",
+              "wake_fallback_on": "Aus: Ohne gestellten Wecker wird nicht vorgeheizt.",
+              "wake_fallback_entity": "Optional. Hat Vorrang vor der festen Uhrzeit. Bei Datum und Uhrzeit zählt nur die Uhrzeit."
+            }
+          },
+          "way_home": {
+            "name": "Heimweg",
+            "data": {
+              "approach_direction": "Richtung",
+              "approach_distance": "Entfernung",
+              "approach_below": "Vorheizen unter",
+              "approach_target": "Zieltemperatur"
+            },
+            "data_description": {
+              "approach_direction": "Sensor der Zone Home, der beim Annähern „towards“ meldet."
+            }
+          }
+        }
+      },
+      "lock": {
+        "title": "Heizsperre",
+        "description": "Für Räume, die nicht heizen sollen. Wird die Heizung eingeschaltet oder öffnet das Ventil, geht sie sofort wieder aus und du bekommst eine Meldung. Nur Frost hebt die Sperre auf, bis der Raum wieder wärmer ist.",
+        "data": {
+          "lock_enabled": "Heizsperre aktiv",
+          "lock_frost_on": "Frostschutz beginnt bei",
+          "lock_frost_off": "Frostschutz endet bei",
+          "lock_wait_sec": "Wartezeit auf das Schließen"
+        },
+        "data_description": {
+          "lock_frost_on": "Ab diesem Wert ist die Sperre ausgesetzt.",
+          "lock_frost_off": "Bis hierhin wird geheizt, danach gilt die Sperre wieder.",
+          "lock_wait_sec": "Schließt das Ventil nicht, wird der Befehl wiederholt und danach Alarm gegeben."
+        }
+      },
+      "summer": {
+        "title": "Sommer",
+        "description": "Hitzeschutz, Grenze fürs Entfeuchten und die Nachtkaskade. Jede Funktion bleibt aus, solange ihre Entität fehlt.",
+        "sections": {
+          "heat_guard": {
+            "name": "Hitzeschutz",
+            "data": {
+              "guard_sensor": "Gefühlte Temperatur",
+              "guard_above": "Starten über",
+              "guard_distance": "Entfernung von zu Hause",
+              "guard_below": "Nur unter",
+              "guard_from": "Frühestens um",
+              "guard_until": "Spätestens bis"
+            },
+            "description": "Startet die Klimaanlage im Eco-Preset, wenn es heiß ist und du auf dem Rückweg bist."
+          },
+          "drying": {
+            "name": "Entfeuchten",
+            "data": {
+              "dry_dew_sensor": "Taupunkt",
+              "dry_dew_below": "Stoppen unter",
+              "dry_humidity_sensor": "Luftfeuchte",
+              "dry_humidity_below": "Stoppen unter"
+            },
+            "description": "Beendet das Entfeuchten, bevor die Luft zu trocken wird."
+          },
+          "cascade": {
+            "name": "Nachtkaskade",
+            "data": {
+              "cascade_focus": "Schlaf-Fokus",
+              "cascade_fan": "Ventilator",
+              "cascade_felt": "Gefühlte Temperatur am Bett",
+              "cascade_real": "Echte Temperatur am Bett",
+              "cascade_fresh": "Fühler, die aktuell sein müssen",
+              "cascade_sleep_start": "Schlafbeginn"
+            },
+            "description": "Der Ventilator regelt schnell auf die gefühlte Temperatur am Bett, die Klimaanlage folgt langsam dahinter."
+          },
+          "cascade_fine": {
+            "name": "Nachtkaskade: Feineinstellung",
+            "data": {
+              "cascade_base": "Nullpunkt",
+              "cascade_drift": "Wanderung je Stunde Schlaf",
+              "cascade_fan_cap": "Lüfter höchstens",
+              "cascade_fan_cap_hot": "Lüfter höchstens in Hitzenächten",
+              "cascade_fan_floor": "Lüfter mindestens",
+              "cascade_fan_floor_cooling": "Lüfter mindestens beim Kühlen",
+              "cascade_hot": "Hitzenacht ab",
+              "cascade_cold": "Zu kalt unter",
+              "cascade_limit_early": "Klima-Untergrenze ab Schlafbeginn",
+              "cascade_limit_mid": "Klima-Untergrenze ab 4 Stunden",
+              "cascade_limit_late": "Klima-Untergrenze ab 6 Stunden"
+            }
+          }
+        }
+      },
+      "outdoor": {
+        "title": "Warme Tage",
+        "description": "Sperrt das Heizen, solange es draußen warm ist. Der Wechsel braucht 30 Minuten Bestand.",
+        "data": {
+          "outdoor_sensor": "Außenfühler",
+          "outdoor_off_above": "Heizung sperren über",
+          "outdoor_on_below": "Sperre aufheben unter"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Ohne Fühler gibt es keine Sperre."
+        }
+      },
+      "air": {
+        "title": "Luft verteilen",
+        "description": "Ein Ventilator gleicht die Luft im Raum aus, beim Heizen wie beim Kühlen. Ein von Hand eingeschalteter Ventilator bleibt unberührt.",
+        "data": {
+          "air_fan": "Ventilator",
+          "air_while_heating": "Beim Heizen",
+          "air_while_cooling": "Beim Kühlen",
+          "air_percent": "Stufe",
+          "air_compare_sensor": "Zweiter Fühler",
+          "air_difference_on": "Einschalten ab Unterschied",
+          "air_difference_off": "Ausschalten unter Unterschied"
+        },
+        "data_description": {
+          "air_compare_sensor": "Optional, z. B. unter der Decke oder am anderen Raumende. Dann läuft er nur, wenn sich die beiden Fühler unterscheiden."
+        }
+      },
+      "ai": {
+        "title": "Per KI einrichten",
+        "description": "So läuft es ab:\n1. KI-Dienst wählen und optional deine Wünsche nennen.\n2. Die KI schlägt passende Geräte und Temperaturen vor.\n3. Du prüfst die Vorschläge und kannst alles ändern.\n4. Erst **Speichern und schließen** im Menü übernimmt sie.\n\nAn den KI-Anbieter gehen Namen, Bereiche und Arten deiner Thermostate, Fühler, Personen und Ventilatoren sowie die aktuellen Einstellungen dieses Thermostats. Messwerte und Zustände werden nicht gesendet.",
+        "data": {
+          "ai_entity": "KI-Dienst",
+          "wish": "Deine Wünsche"
+        },
+        "data_description": {
+          "wish": "Zum Beispiel: Die Küche soll etwas wärmer sein als das Wohnzimmer."
+        }
+      },
+      "ai_review": {
+        "title": "Vorschläge prüfen",
+        "description": "**Begründung der KI:** {reason}\n\nDas sind nur Vorschläge. Ändere oder leere, was nicht passt.",
+        "data": {
+          "temperature_sensor": "Raumfühler",
+          "humidity_sensor": "Feuchtefühler",
+          "heaters": "Heizkörper",
+          "cooler": "Klimaanlage",
+          "window_sensor": "Fenster",
+          "presence_entity": "Anwesenheit",
+          "sleep_entity": "Schlafen",
+          "wake_entity": "Wecker",
+          "heat_eco": "Heizen: Eco",
+          "heat_comfort": "Heizen: Komfort",
+          "heat_boost": "Heizen: Boost",
+          "cool_eco": "Kühlen: Eco",
+          "cool_comfort": "Kühlen: Komfort",
+          "cool_boost": "Kühlen: Boost",
+          "outdoor_sensor": "Außenfühler",
+          "air_fan": "Ventilator",
+          "air_compare_sensor": "Zweiter Fühler"
+        }
+      },
+      "valves": {
+        "title": "Gerät halten und Ventile",
+        "description": "**Gerät halten:** Wird ein Thermostat von Hand verstellt, setzt ThermGenie es sofort zurück. Bei Heizsperre gilt das immer.\n\n**Ventile:** Bleibt ein Ventil offen, obwohl sein Heizkörper schließen soll, kommt nach der Wartezeit eine Warnung. Bei Heizsperre löst ein offenes Ventil zusätzlich die Sperre aus.\n\n{devices}",
+        "data": {
+          "hold_devices": "Gerät gegen Verstellen halten",
+          "valve_1": "Ventilstellung 1",
+          "valve_2": "Ventilstellung 2",
+          "valve_3": "Ventilstellung 3",
+          "valve_4": "Ventilstellung 4",
+          "valve_5": "Ventilstellung 5",
+          "valve_6": "Ventilstellung 6",
+          "valve_limit": "Ventil gilt als offen ab",
+          "valve_wait_min": "Warnen nach"
+        }
+      }
+    },
+    "error": {
+      "no_device": "Bitte mindestens ein Heizgerät oder eine Klimaanlage auswählen.",
+      "cooler_is_heater": "Ein Gerät kann nicht gleichzeitig Heizgerät und Klimaanlage sein.",
+      "too_many_heaters": "Es sind höchstens 6 Heizgeräte je Thermostat möglich.",
+      "frost_limits": "Das Ende des Frostschutzes muss über seinem Beginn liegen.",
+      "ai_failed": "Die KI hat nicht geantwortet. Details stehen im Log.",
+      "ai_empty": "Die KI hatte keine brauchbaren Vorschläge."
+    }
+  },
+  "selector": {
+    "reference": {
+      "options": {
+        "temperature": "Echte Temperatur",
+        "humidex": "Humidex",
+        "comfort": "Gefühlte Temperatur"
+      }
+    },
+    "heat_source": {
+      "options": {
+        "radiators": "Nur Heizkörper",
+        "air_conditioner": "Nur Klimaanlage",
+        "both": "Heizkörper und Klimaanlage"
+      }
+    },
+    "tuning": {
+      "options": {
+        "manual": "Manuell",
+        "observe": "Nur beobachten",
+        "automatic": "Automatisch"
+      }
+    }
+  },
+  "services": {
+    "reset_learning": {
+      "name": "Gelerntes vergessen",
+      "description": "Setzt die gelernten Bremsfaktoren und die Optimierung der Regelung zurück. Das Protokoll der Heizphasen bleibt erhalten."
+    },
+    "set_routine": {
+      "name": "Automatik ein- oder ausschalten",
+      "description": "Schaltet eine Automatik dieses Thermostats ein oder aus.",
+      "fields": {
+        "routine": {
+          "name": "Automatik",
+          "description": "Welche Automatik."
+        },
+        "enabled": {
+          "name": "Aktiv",
+          "description": "Ein oder aus."
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "thermgenie": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "frost": "Frostschutz",
+              "eco": "Eco",
+              "comfort": "Komfort",
+              "boost": "Boost",
+              "none": "Manuell"
+            }
+          },
+          "hvac_action": {
+            "state": {
+              "off": "aus",
+              "heating": "heizt",
+              "cooling": "kühlt",
+              "drying": "trocknet",
+              "fan": "Lüfter läuft",
+              "idle": "hält"
+            }
+          }
+        },
+        "state": {
+          "off": "Aus",
+          "heat": "Heizen",
+          "cool": "Kühlen",
+          "dry": "Trocknen",
+          "fan_only": "Lüfter"
+        }
+      }
+    },
+    "sensor": {
+      "overshoot": {
+        "name": "Überschwingen"
+      },
+      "brake_factor": {
+        "name": "Bremsfaktor"
+      },
+      "humidex": {
+        "name": "Humidex"
+      },
+      "dew_point": {
+        "name": "Taupunkt"
+      },
+      "comfort_temperature": {
+        "name": "Gefühlte Temperatur"
+      },
+      "blocked_by": {
+        "name": "Gesperrt durch",
+        "state": {
+          "none": "Nichts",
+          "window": "Fenster",
+          "outdoor": "Warmer Tag"
+        }
+      },
+      "device_command": {
+        "name": "Stellwert {device}"
+      },
+      "wake_at": {
+        "name": "Nächstes Aufheizen"
+      },
+      "tuning_state": {
+        "name": "Optimierung",
+        "state": {
+          "off": "Aus",
+          "collecting": "Misst",
+          "proposal": "Vorschlag liegt vor"
+        }
+      },
+      "tuned_kp": {
+        "name": "Aktuelles kp"
+      },
+      "tuned_ki": {
+        "name": "Aktuelles ki"
+      }
+    },
+    "number": {
+      "heat_frost": {
+        "name": "Heizen: Frostschutz"
+      },
+      "heat_eco": {
+        "name": "Heizen: Eco"
+      },
+      "heat_comfort": {
+        "name": "Heizen: Komfort"
+      },
+      "heat_boost": {
+        "name": "Heizen: Boost"
+      },
+      "cool_eco": {
+        "name": "Kühlen: Eco"
+      },
+      "cool_comfort": {
+        "name": "Kühlen: Komfort"
+      },
+      "cool_boost": {
+        "name": "Kühlen: Boost"
+      },
+      "kp": {
+        "name": "Heizen: P-Anteil"
+      },
+      "ki": {
+        "name": "Heizen: I-Anteil"
+      },
+      "kd": {
+        "name": "Heizen: D-Anteil (Bremse)"
+      },
+      "offset_max": {
+        "name": "Heizen: Größte Sollwert-Verschiebung"
+      },
+      "integral_limit": {
+        "name": "Heizen: Grenze des I-Speichers"
+      },
+      "kp_cool": {
+        "name": "Kühlen: P-Anteil"
+      },
+      "ki_cool": {
+        "name": "Kühlen: I-Anteil"
+      },
+      "kd_cool": {
+        "name": "Kühlen: D-Anteil (Bremse)"
+      },
+      "offset_max_cool": {
+        "name": "Kühlen: Größte Sollwert-Verschiebung"
+      },
+      "integral_limit_cool": {
+        "name": "Kühlen: Grenze des I-Speichers"
+      },
+      "period_min": {
+        "name": "Regeltakt"
+      },
+      "dtemp": {
+        "name": "Kleinster Schritt je Funkbefehl"
+      },
+      "boost_minutes": {
+        "name": "Boost endet nach"
+      },
+      "sensor_timeout_min": {
+        "name": "Raumfühler gilt als ausgefallen nach"
+      },
+      "window_open_delay": {
+        "name": "Fenster offen: reagieren nach"
+      },
+      "window_close_delay": {
+        "name": "Fenster zu: reagieren nach"
+      },
+      "wake_lead_min": {
+        "name": "Vorheizen vor dem Wecker"
+      },
+      "approach_below": {
+        "name": "Heimweg: Vorheizen unter"
+      },
+      "approach_target": {
+        "name": "Heimweg: Zieltemperatur"
+      },
+      "guard_above": {
+        "name": "Hitzeschutz: Starten über"
+      },
+      "guard_below": {
+        "name": "Hitzeschutz: Nur unter"
+      },
+      "dry_dew_below": {
+        "name": "Entfeuchten: Taupunkt stoppt unter"
+      },
+      "dry_humidity_below": {
+        "name": "Entfeuchten: Luftfeuchte stoppt unter"
+      },
+      "air_percent": {
+        "name": "Luft verteilen: Stufe"
+      },
+      "air_difference_on": {
+        "name": "Luft verteilen: Einschalten ab Unterschied"
+      },
+      "air_difference_off": {
+        "name": "Luft verteilen: Ausschalten unter Unterschied"
+      },
+      "outdoor_off_above": {
+        "name": "Warme Tage: Heizung sperren über"
+      },
+      "outdoor_on_below": {
+        "name": "Warme Tage: Sperre aufheben unter"
+      },
+      "cascade_base": {
+        "name": "Nachtkaskade: Nullpunkt"
+      },
+      "cascade_drift": {
+        "name": "Nachtkaskade: Wanderung je Stunde Schlaf"
+      },
+      "cascade_fan_cap": {
+        "name": "Nachtkaskade: Lüfter höchstens"
+      },
+      "cascade_fan_cap_hot": {
+        "name": "Nachtkaskade: Lüfter höchstens in Hitzenächten"
+      },
+      "cascade_fan_floor": {
+        "name": "Nachtkaskade: Lüfter mindestens"
+      },
+      "cascade_fan_floor_cooling": {
+        "name": "Nachtkaskade: Lüfter mindestens beim Kühlen"
+      },
+      "cascade_hot": {
+        "name": "Nachtkaskade: Hitzenacht ab"
+      },
+      "cascade_cold": {
+        "name": "Nachtkaskade: Zu kalt unter"
+      },
+      "cascade_limit_early": {
+        "name": "Nachtkaskade: Klima-Untergrenze ab Schlafbeginn"
+      },
+      "cascade_limit_mid": {
+        "name": "Nachtkaskade: Klima-Untergrenze ab 4 Stunden"
+      },
+      "cascade_limit_late": {
+        "name": "Nachtkaskade: Klima-Untergrenze ab 6 Stunden"
+      },
+      "heater_offset": {
+        "name": "Versatz {device}"
+      },
+      "heater_kd": {
+        "name": "Bremse {device}"
+      },
+      "valve_limit": {
+        "name": "Ventile: gilt als offen ab"
+      },
+      "valve_wait_min": {
+        "name": "Ventile: warnen nach"
+      }
+    },
+    "switch": {
+      "wake_fallback_on": {
+        "name": "Ohne Wecker trotzdem aufheizen"
+      },
+      "air_while_heating": {
+        "name": "Luft verteilen: Beim Heizen"
+      },
+      "air_while_cooling": {
+        "name": "Luft verteilen: Beim Kühlen"
+      },
+      "learn": {
+        "name": "Bremse aus dem Überschwingen lernen"
+      },
+      "use_device_temp": {
+        "name": "Heizen: Sollwert auf den Gerätefühler umrechnen"
+      },
+      "fan_boost": {
+        "name": "Kühlen: Lüfter bei großem Abstand hochdrehen"
+      },
+      "routine_sleep": {
+        "name": "Automatik: Schlaf und Anwesenheit"
+      },
+      "routine_wake": {
+        "name": "Automatik: Aufheizen zum Wecken"
+      },
+      "routine_way_home": {
+        "name": "Automatik: Heimweg"
+      },
+      "routine_guard": {
+        "name": "Automatik: Hitzeschutz"
+      },
+      "routine_cascade": {
+        "name": "Automatik: Nachtkaskade"
+      },
+      "routine_dry": {
+        "name": "Automatik: Entfeuchtungs-Grenze"
+      },
+      "routine_air": {
+        "name": "Automatik: Luft verteilen"
+      },
+      "hold_devices": {
+        "name": "Gerät gegen Verstellen halten"
+      }
+    },
+    "time": {
+      "wake_fallback": {
+        "name": "Vorheizen ohne Wecker um"
+      },
+      "guard_from": {
+        "name": "Hitzeschutz: Frühestens um"
+      },
+      "guard_until": {
+        "name": "Hitzeschutz: Spätestens bis"
+      }
+    },
+    "select": {
+      "reference_heat": {
+        "name": "Heizen: Regeln nach",
+        "state": {
+          "temperature": "Echte Temperatur",
+          "humidex": "Humidex",
+          "comfort": "Gefühlte Temperatur"
+        }
+      },
+      "reference_cool": {
+        "name": "Kühlen: Regeln nach",
+        "state": {
+          "temperature": "Echte Temperatur",
+          "humidex": "Humidex",
+          "comfort": "Gefühlte Temperatur"
+        }
+      },
+      "heat_source": {
+        "name": "Heizen mit",
+        "state": {
+          "radiators": "Nur Heizkörper",
+          "air_conditioner": "Nur Klimaanlage",
+          "both": "Heizkörper und Klimaanlage"
+        }
+      },
+      "tuning": {
+        "name": "Regelung optimieren",
+        "state": {
+          "manual": "Manuell",
+          "observe": "Nur beobachten",
+          "automatic": "Automatisch"
+        }
+      }
+    },
+    "binary_sensor": {
+      "sensor_stale": {
+        "name": "Raumfühler ausgefallen"
+      },
+      "frost_active": {
+        "name": "Frostschutz aktiv"
+      },
+      "valve_stuck": {
+        "name": "Ventil schließt nicht"
+      }
+    },
+    "button": {
+      "reset_learning": {
+        "name": "Gelerntes vergessen"
+      }
+    }
+  },
+  "exceptions": {
+    "heat_locked": {
+      "message": "{room}: Hier gilt die Heizsperre, die Heizung lässt sich nicht bedienen."
+    },
+    "limits_order": {
+      "message": "Die untere Grenze muss unter der oberen bleiben."
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "domain": "thermgenie",
+  "name": "ThermGenie",
+  "after_dependencies": [
+    "ai_task",
+    "frontend",
+    "http"
+  ],
+  "codeowners": [
+    "@kewe87"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/kewe87/thermgenie",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/kewe87/thermgenie/issues",
+  "requirements": [],
+  "version": "0.7.0"
+}

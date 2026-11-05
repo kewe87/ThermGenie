@@ -1,0 +1,28 @@
+reset_learning:
+  target:
+    entity:
+      integration: thermgenie
+      domain: climate
+
+set_routine:
+  target:
+    entity:
+      integration: thermgenie
+      domain: climate
+  fields:
+    routine:
+      required: true
+      selector:
+        select:
+          options:
+            - sleep
+            - wake
+            - way_home
+            - guard
+            - cascade
+            - dry
+            - air
+    enabled:
+      required: true
+      selector:
+        boolean:

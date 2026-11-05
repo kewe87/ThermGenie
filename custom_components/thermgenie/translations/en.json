@@ -1,0 +1,895 @@
+{
+  "title": "ThermGenie",
+  "config": {
+    "step": {
+      "user": {
+        "title": "New thermostat",
+        "description": "ThermGenie regulates on the sensor that really counts. The devices get a shifted setpoint for that. Everything else is set later under **Configure**.",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Room sensor",
+          "humidity_sensor": "Humidity",
+          "heaters": "Heaters",
+          "cooler": "Air conditioner",
+          "window_sensor": "Window sensor"
+        },
+        "data_description": {
+          "name": "For example the name of the room.",
+          "temperature_sensor": "The sensor whose value counts in the room, for example at the couch.",
+          "humidity_sensor": "Optional. ThermGenie then calculates dew point, humidex and comfort temperature itself.",
+          "heaters": "One thermostat can lead several radiators of a room.",
+          "cooler": "Optional. Heating and cooling never run together.",
+          "window_sensor": "Optional. With an open window heating falls to frost protection and the air conditioner stops."
+        }
+      },
+      "offsets": {
+        "title": "Offset and brake per radiator",
+        "description": "Radiators in this thermostat:\n{devices}\n\nThe offset shifts the setpoint, the brake acts on the approach to the target. A large radiator with a lot of afterheat needs a stronger brake.",
+        "data": {
+          "offset_1": "Radiator 1: offset",
+          "offset_2": "Radiator 2: offset",
+          "offset_3": "Radiator 3: offset",
+          "offset_4": "Radiator 4: offset",
+          "offset_5": "Radiator 5: offset",
+          "offset_6": "Radiator 6: offset",
+          "kd_1": "Radiator 1: brake",
+          "kd_2": "Radiator 2: brake",
+          "kd_3": "Radiator 3: brake",
+          "kd_4": "Radiator 4: brake",
+          "kd_5": "Radiator 5: brake",
+          "kd_6": "Radiator 6: brake"
+        }
+      },
+      "presets": {
+        "title": "Temperatures",
+        "description": "Heating and cooling have separate values under the same preset names.",
+        "sections": {
+          "heating": {
+            "name": "Heating",
+            "data": {
+              "heat_frost": "Frost protection",
+              "heat_eco": "Eco",
+              "heat_comfort": "Comfort",
+              "heat_boost": "Boost"
+            },
+            "data_description": {
+              "heat_frost": "Also applies with an open window."
+            }
+          },
+          "cooling": {
+            "name": "Cooling",
+            "data": {
+              "cool_eco": "Eco",
+              "cool_comfort": "Comfort",
+              "cool_boost": "Boost"
+            }
+          }
+        }
+      },
+      "routines": {
+        "title": "Everyday life and messages",
+        "description": "Each function stays off as long as its entity is missing.",
+        "sections": {
+          "messages": {
+            "name": "Messages",
+            "data": {
+              "notify_service": "Push service",
+              "tts_service": "Speech service",
+              "tts_targets": "Speakers",
+              "quiet_entity": "No speech while on"
+            },
+            "data_description": {
+              "tts_service": "Only for serious faults like a stuck valve.",
+              "quiet_entity": "For example a focus mode."
+            }
+          },
+          "daily": {
+            "name": "Daily routine",
+            "data": {
+              "presence_entity": "Presence",
+              "sleep_entity": "Sleeping",
+              "wake_entity": "Alarm",
+              "wake_lead_min": "Heat up before the alarm",
+              "wake_fallback": "Heat up without an alarm at",
+              "wake_fallback_on": "Heat up without an alarm too",
+              "wake_fallback_entity": "Time from an entity"
+            },
+            "data_description": {
+              "sleep_entity": "While heating eco applies while asleep or away, otherwise comfort.",
+              "wake_fallback_on": "Off: no heating ahead when no alarm is set.",
+              "wake_fallback_entity": "Optional. Goes before the fixed time. With date and time only the time counts."
+            }
+          },
+          "way_home": {
+            "name": "Way home",
+            "data": {
+              "approach_direction": "Direction",
+              "approach_distance": "Distance",
+              "approach_below": "Heat up below",
+              "approach_target": "Target"
+            },
+            "data_description": {
+              "approach_direction": "Sensor of the home zone that reports “towards” on approach."
+            }
+          }
+        }
+      },
+      "outdoor": {
+        "title": "Warm days",
+        "description": "Blocks heating while it is warm outside. The change has to last 30 minutes.",
+        "data": {
+          "outdoor_sensor": "Outdoor sensor",
+          "outdoor_off_above": "Block heating above",
+          "outdoor_on_below": "Release below"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Without a sensor nothing is blocked."
+        }
+      }
+    },
+    "error": {
+      "no_device": "Please choose at least one heater or an air conditioner.",
+      "cooler_is_heater": "A device cannot be heater and air conditioner at once.",
+      "too_many_heaters": "A thermostat can have at most 6 heaters.",
+      "frost_limits": "The end of frost protection must be above its start."
+    },
+    "abort": {
+      "already_configured": "A thermostat with this name already exists."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ThermGenie settings",
+        "description": "Choose an area. Changes apply when you **save**.",
+        "menu_options": {
+          "devices": "Room and devices",
+          "presets": "Temperatures",
+          "regulation": "Regulation",
+          "routines": "Everyday life and messages",
+          "lock": "Heating lock",
+          "summer": "Summer",
+          "save": "Save and close",
+          "ai": "Set up with AI",
+          "outdoor": "Warm days",
+          "air": "Move the air",
+          "valves": "Hold devices and valves"
+        },
+        "menu_option_descriptions": {
+          "devices": "Room sensor, radiators, air conditioner and window",
+          "presets": "Frost protection, eco, comfort and boost",
+          "regulation": "Set screws of the regulator and the self-learning brake",
+          "routines": "Push, speech, sleep, alarm and way home",
+          "lock": "A room that must not heat, only frost lifts the lock",
+          "summer": "Heat guard, drying and night cascade",
+          "save": "Apply the settings, the thermostat reloads",
+          "ai": "AI suggests devices and sensors, you check everything before saving",
+          "outdoor": "Block heating while it is warm outside",
+          "air": "A fan evens out the air, when heating and when cooling",
+          "valves": "Set back changes at the device, report open valves"
+        }
+      },
+      "devices": {
+        "title": "Room and devices",
+        "description": "Room sensor, radiators, air conditioner and window.",
+        "data": {
+          "temperature_sensor": "Room sensor",
+          "humidity_sensor": "Humidity",
+          "heaters": "Heaters",
+          "cooler": "Air conditioner",
+          "window_sensor": "Window sensor"
+        },
+        "data_description": {
+          "temperature_sensor": "The sensor whose value counts in the room, for example at the couch.",
+          "humidity_sensor": "Optional. ThermGenie then calculates dew point, humidex and comfort temperature itself.",
+          "heaters": "One thermostat can lead several radiators of a room.",
+          "cooler": "Optional. Heating and cooling never run together.",
+          "window_sensor": "Optional. With an open window heating falls to frost protection and the air conditioner stops."
+        }
+      },
+      "offsets": {
+        "title": "Offset and brake per radiator",
+        "description": "Radiators in this thermostat:\n{devices}\n\nThe offset shifts the setpoint, the brake acts on the approach to the target. A large radiator with a lot of afterheat needs a stronger brake.",
+        "data": {
+          "offset_1": "Radiator 1: offset",
+          "offset_2": "Radiator 2: offset",
+          "offset_3": "Radiator 3: offset",
+          "offset_4": "Radiator 4: offset",
+          "offset_5": "Radiator 5: offset",
+          "offset_6": "Radiator 6: offset",
+          "kd_1": "Radiator 1: brake",
+          "kd_2": "Radiator 2: brake",
+          "kd_3": "Radiator 3: brake",
+          "kd_4": "Radiator 4: brake",
+          "kd_5": "Radiator 5: brake",
+          "kd_6": "Radiator 6: brake"
+        }
+      },
+      "presets": {
+        "title": "Temperatures",
+        "description": "Heating and cooling have separate values under the same preset names.",
+        "sections": {
+          "heating": {
+            "name": "Heating",
+            "data": {
+              "heat_frost": "Frost protection",
+              "heat_eco": "Eco",
+              "heat_comfort": "Comfort",
+              "heat_boost": "Boost"
+            },
+            "data_description": {
+              "heat_frost": "Also applies with an open window."
+            }
+          },
+          "cooling": {
+            "name": "Cooling",
+            "data": {
+              "cool_eco": "Eco",
+              "cool_comfort": "Comfort",
+              "cool_boost": "Boost"
+            }
+          }
+        }
+      },
+      "regulation": {
+        "title": "Regulation",
+        "description": "The defaults fit most rooms. Change in small steps, then watch for a few days.",
+        "sections": {
+          "heating": {
+            "name": "Heating",
+            "data": {
+              "reference_heat": "Regulate on",
+              "kp": "P gain",
+              "ki": "I gain",
+              "kd": "D gain (brake)",
+              "offset_max": "Largest setpoint shift",
+              "integral_limit": "Limit of the I store",
+              "use_device_temp": "Convert the setpoint to the device sensor",
+              "heat_source": "Heat with"
+            },
+            "data_description": {
+              "reference_heat": "The value the room is regulated on.",
+              "kd": "K per K/h. Brakes before the target is reached.",
+              "use_device_temp": "For devices whose own sensor is far off, for example right at the warm radiator.",
+              "heat_source": "If the air conditioner cannot heat, the radiators take over."
+            }
+          },
+          "learning": {
+            "name": "Learning",
+            "data": {
+              "learn": "Learn the brake from the overshoot",
+              "flow_sensor": "Flow temperature sensor",
+              "tuning": "Optimize regulation"
+            },
+            "data_description": {
+              "learn": "Adjusts the D gain after each clean heating phase in small bounded steps.",
+              "flow_sensor": "Optional. Learning is then separate per flow temperature.",
+              "tuning": "Measures the heating phases. \"Observe only\" makes suggestions, \"Automatic\" adjusts kp and ki itself in small, bounded steps. The values you set are kept."
+            }
+          },
+          "cooling": {
+            "name": "Cooling",
+            "data": {
+              "reference_cool": "Regulate on",
+              "kp_cool": "P gain",
+              "ki_cool": "I gain",
+              "kd_cool": "D gain (brake)",
+              "offset_max_cool": "Largest setpoint shift",
+              "integral_limit_cool": "Limit of the I store",
+              "fan_boost": "Turn the fan up on a large gap"
+            },
+            "data_description": {
+              "reference_cool": "Humidex includes the mugginess, which usually fits summer better."
+            }
+          },
+          "timing": {
+            "name": "Timing and radio",
+            "data": {
+              "period_min": "Regulation period",
+              "dtemp": "Smallest step per radio command",
+              "boost_minutes": "Boost ends after",
+              "sensor_timeout_min": "Room sensor counts as failed after",
+              "window_open_delay": "Window open: react after",
+              "window_close_delay": "Window closed: react after"
+            },
+            "data_description": {
+              "boost_minutes": "0 means boost stays until it is changed.",
+              "sensor_timeout_min": "After that the device regulates on its own sensor."
+            }
+          }
+        }
+      },
+      "routines": {
+        "title": "Everyday life and messages",
+        "description": "Each function stays off as long as its entity is missing.",
+        "sections": {
+          "messages": {
+            "name": "Messages",
+            "data": {
+              "notify_service": "Push service",
+              "tts_service": "Speech service",
+              "tts_targets": "Speakers",
+              "quiet_entity": "No speech while on"
+            },
+            "data_description": {
+              "tts_service": "Only for serious faults like a stuck valve.",
+              "quiet_entity": "For example a focus mode."
+            }
+          },
+          "daily": {
+            "name": "Daily routine",
+            "data": {
+              "presence_entity": "Presence",
+              "sleep_entity": "Sleeping",
+              "wake_entity": "Alarm",
+              "wake_lead_min": "Heat up before the alarm",
+              "wake_fallback": "Heat up without an alarm at",
+              "wake_fallback_on": "Heat up without an alarm too",
+              "wake_fallback_entity": "Time from an entity"
+            },
+            "data_description": {
+              "sleep_entity": "While heating eco applies while asleep or away, otherwise comfort.",
+              "wake_fallback_on": "Off: no heating ahead when no alarm is set.",
+              "wake_fallback_entity": "Optional. Goes before the fixed time. With date and time only the time counts."
+            }
+          },
+          "way_home": {
+            "name": "Way home",
+            "data": {
+              "approach_direction": "Direction",
+              "approach_distance": "Distance",
+              "approach_below": "Heat up below",
+              "approach_target": "Target"
+            },
+            "data_description": {
+              "approach_direction": "Sensor of the home zone that reports “towards” on approach."
+            }
+          }
+        }
+      },
+      "lock": {
+        "title": "Heating lock",
+        "description": "For rooms that should not heat. If the heating is turned on or the valve opens, it goes off again at once and you get a message. Only frost lifts the lock, until the room is warmer again.",
+        "data": {
+          "lock_enabled": "Heating lock active",
+          "lock_frost_on": "Frost protection starts at",
+          "lock_frost_off": "Frost protection ends at",
+          "lock_wait_sec": "Time to wait for closing"
+        },
+        "data_description": {
+          "lock_frost_on": "From this value on the lock is set aside.",
+          "lock_frost_off": "Heats up to here, then the lock applies again.",
+          "lock_wait_sec": "If the valve does not close the command is repeated, then the alarm goes off."
+        }
+      },
+      "summer": {
+        "title": "Summer",
+        "description": "Heat guard, drying limit and the night cascade. Each function stays off as long as its entity is missing.",
+        "sections": {
+          "heat_guard": {
+            "name": "Heat guard",
+            "data": {
+              "guard_sensor": "Felt temperature",
+              "guard_above": "Start above",
+              "guard_distance": "Distance from home",
+              "guard_below": "Only below",
+              "guard_from": "Not before",
+              "guard_until": "Not after"
+            },
+            "description": "Starts the air conditioner in eco when it is hot and you are on the way back."
+          },
+          "drying": {
+            "name": "Drying",
+            "data": {
+              "dry_dew_sensor": "Dew point",
+              "dry_dew_below": "Stop below",
+              "dry_humidity_sensor": "Humidity",
+              "dry_humidity_below": "Stop below"
+            },
+            "description": "Ends drying before the air gets too dry."
+          },
+          "cascade": {
+            "name": "Night cascade",
+            "data": {
+              "cascade_focus": "Sleep focus",
+              "cascade_fan": "Fan",
+              "cascade_felt": "Felt temperature at the bed",
+              "cascade_real": "Real temperature at the bed",
+              "cascade_fresh": "Sensors that have to be current",
+              "cascade_sleep_start": "Start of sleep"
+            },
+            "description": "The fan regulates fast on the felt temperature at the bed, the air conditioner follows slowly behind it."
+          },
+          "cascade_fine": {
+            "name": "Night cascade: fine tuning",
+            "data": {
+              "cascade_base": "Zero point",
+              "cascade_drift": "Drift per hour of sleep",
+              "cascade_fan_cap": "Fan at most",
+              "cascade_fan_cap_hot": "Fan at most on hot nights",
+              "cascade_fan_floor": "Fan at least",
+              "cascade_fan_floor_cooling": "Fan at least while cooling",
+              "cascade_hot": "Hot night from",
+              "cascade_cold": "Too cold below",
+              "cascade_limit_early": "AC lower limit at the start of sleep",
+              "cascade_limit_mid": "AC lower limit from 4 hours",
+              "cascade_limit_late": "AC lower limit from 6 hours"
+            }
+          }
+        }
+      },
+      "outdoor": {
+        "title": "Warm days",
+        "description": "Blocks heating while it is warm outside. The change has to last 30 minutes.",
+        "data": {
+          "outdoor_sensor": "Outdoor sensor",
+          "outdoor_off_above": "Block heating above",
+          "outdoor_on_below": "Release below"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Without a sensor nothing is blocked."
+        }
+      },
+      "air": {
+        "title": "Move the air",
+        "description": "A fan evens out the air of the room, when heating and when cooling. A fan switched on by hand is left alone.",
+        "data": {
+          "air_fan": "Fan",
+          "air_while_heating": "While heating",
+          "air_while_cooling": "While cooling",
+          "air_percent": "Speed",
+          "air_compare_sensor": "Second sensor",
+          "air_difference_on": "Start at a difference of",
+          "air_difference_off": "Stop below a difference of"
+        },
+        "data_description": {
+          "air_compare_sensor": "Optional, for example under the ceiling or at the far end of the room. The fan then only runs while both sensors differ."
+        }
+      },
+      "ai": {
+        "title": "Set up with AI",
+        "description": "How it works:\n1. Choose an AI service and name your wishes if you like.\n2. The AI suggests fitting devices and temperatures.\n3. You check the suggestions and can change everything.\n4. Only **Save and close** in the menu applies them.\n\nThe AI provider receives names, areas and kinds of your thermostats, sensors, persons and fans plus the current settings of this thermostat. Measured values and states are not sent.",
+        "data": {
+          "ai_entity": "AI service",
+          "wish": "Your wishes"
+        },
+        "data_description": {
+          "wish": "For example: the kitchen should be a little warmer than the living room."
+        }
+      },
+      "ai_review": {
+        "title": "Check the suggestions",
+        "description": "**Reason given by the AI:** {reason}\n\nThese are only suggestions. Change or empty what does not fit.",
+        "data": {
+          "temperature_sensor": "Room sensor",
+          "humidity_sensor": "Humidity sensor",
+          "heaters": "Radiators",
+          "cooler": "Air conditioner",
+          "window_sensor": "Window",
+          "presence_entity": "Presence",
+          "sleep_entity": "Sleep",
+          "wake_entity": "Alarm",
+          "heat_eco": "Heating: eco",
+          "heat_comfort": "Heating: comfort",
+          "heat_boost": "Heating: boost",
+          "cool_eco": "Cooling: eco",
+          "cool_comfort": "Cooling: comfort",
+          "cool_boost": "Cooling: boost",
+          "outdoor_sensor": "Outdoor sensor",
+          "air_fan": "Fan",
+          "air_compare_sensor": "Second sensor"
+        }
+      },
+      "valves": {
+        "title": "Hold devices and valves",
+        "description": "**Hold devices:** If a thermostat is changed by hand, ThermGenie sets it back at once. With a heating lock this always applies.\n\n**Valves:** If a valve stays open although its radiator should close, you get a warning after the waiting time. With a heating lock an open valve also triggers the lock.\n\n{devices}",
+        "data": {
+          "hold_devices": "Hold the devices against changes",
+          "valve_1": "Valve position 1",
+          "valve_2": "Valve position 2",
+          "valve_3": "Valve position 3",
+          "valve_4": "Valve position 4",
+          "valve_5": "Valve position 5",
+          "valve_6": "Valve position 6",
+          "valve_limit": "A valve counts as open from",
+          "valve_wait_min": "Warn after"
+        }
+      }
+    },
+    "error": {
+      "no_device": "Please choose at least one heater or an air conditioner.",
+      "cooler_is_heater": "A device cannot be heater and air conditioner at once.",
+      "too_many_heaters": "A thermostat can have at most 6 heaters.",
+      "frost_limits": "The end of frost protection must be above its start.",
+      "ai_failed": "The AI did not answer. See the log for details.",
+      "ai_empty": "The AI had no usable suggestions."
+    }
+  },
+  "selector": {
+    "reference": {
+      "options": {
+        "temperature": "Real temperature",
+        "humidex": "Humidex",
+        "comfort": "Comfort temperature"
+      }
+    },
+    "heat_source": {
+      "options": {
+        "radiators": "Radiators only",
+        "air_conditioner": "Air conditioner only",
+        "both": "Radiators and air conditioner"
+      }
+    },
+    "tuning": {
+      "options": {
+        "manual": "Manual",
+        "observe": "Observe only",
+        "automatic": "Automatic"
+      }
+    }
+  },
+  "services": {
+    "reset_learning": {
+      "name": "Forget what was learned",
+      "description": "Resets the learned brake factors and the optimization of the regulation. The log of the heating phases is kept."
+    },
+    "set_routine": {
+      "name": "Switch a routine",
+      "description": "Switches a routine of this thermostat on or off.",
+      "fields": {
+        "routine": {
+          "name": "Routine",
+          "description": "Which routine."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "On or off."
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "thermgenie": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "frost": "Frost protection",
+              "eco": "Eco",
+              "comfort": "Comfort",
+              "boost": "Boost",
+              "none": "Manual"
+            }
+          },
+          "hvac_action": {
+            "state": {
+              "off": "off",
+              "heating": "heating",
+              "cooling": "cooling",
+              "drying": "drying",
+              "fan": "fan running",
+              "idle": "holding"
+            }
+          }
+        },
+        "state": {
+          "off": "Off",
+          "heat": "Heat",
+          "cool": "Cool",
+          "dry": "Dry",
+          "fan_only": "Fan"
+        }
+      }
+    },
+    "sensor": {
+      "overshoot": {
+        "name": "Overshoot"
+      },
+      "brake_factor": {
+        "name": "Brake factor"
+      },
+      "humidex": {
+        "name": "Humidex"
+      },
+      "dew_point": {
+        "name": "Dew point"
+      },
+      "comfort_temperature": {
+        "name": "Comfort temperature"
+      },
+      "blocked_by": {
+        "name": "Blocked by",
+        "state": {
+          "none": "Nothing",
+          "window": "Window",
+          "outdoor": "Warm day"
+        }
+      },
+      "device_command": {
+        "name": "Setpoint {device}"
+      },
+      "wake_at": {
+        "name": "Next heating up"
+      },
+      "tuning_state": {
+        "name": "Optimization",
+        "state": {
+          "off": "Off",
+          "collecting": "Measuring",
+          "proposal": "Suggestion available"
+        }
+      },
+      "tuned_kp": {
+        "name": "Current kp"
+      },
+      "tuned_ki": {
+        "name": "Current ki"
+      }
+    },
+    "number": {
+      "heat_frost": {
+        "name": "Heating: Frost protection"
+      },
+      "heat_eco": {
+        "name": "Heating: Eco"
+      },
+      "heat_comfort": {
+        "name": "Heating: Comfort"
+      },
+      "heat_boost": {
+        "name": "Heating: Boost"
+      },
+      "cool_eco": {
+        "name": "Cooling: Eco"
+      },
+      "cool_comfort": {
+        "name": "Cooling: Comfort"
+      },
+      "cool_boost": {
+        "name": "Cooling: Boost"
+      },
+      "kp": {
+        "name": "Heating: P gain"
+      },
+      "ki": {
+        "name": "Heating: I gain"
+      },
+      "kd": {
+        "name": "Heating: D gain (brake)"
+      },
+      "offset_max": {
+        "name": "Heating: Largest setpoint shift"
+      },
+      "integral_limit": {
+        "name": "Heating: Limit of the I store"
+      },
+      "kp_cool": {
+        "name": "Cooling: P gain"
+      },
+      "ki_cool": {
+        "name": "Cooling: I gain"
+      },
+      "kd_cool": {
+        "name": "Cooling: D gain (brake)"
+      },
+      "offset_max_cool": {
+        "name": "Cooling: Largest setpoint shift"
+      },
+      "integral_limit_cool": {
+        "name": "Cooling: Limit of the I store"
+      },
+      "period_min": {
+        "name": "Regulation period"
+      },
+      "dtemp": {
+        "name": "Smallest step per radio command"
+      },
+      "boost_minutes": {
+        "name": "Boost ends after"
+      },
+      "sensor_timeout_min": {
+        "name": "Room sensor counts as failed after"
+      },
+      "window_open_delay": {
+        "name": "Window open: react after"
+      },
+      "window_close_delay": {
+        "name": "Window closed: react after"
+      },
+      "wake_lead_min": {
+        "name": "Heat up before the alarm"
+      },
+      "approach_below": {
+        "name": "Way home: Heat up below"
+      },
+      "approach_target": {
+        "name": "Way home: Target"
+      },
+      "guard_above": {
+        "name": "Heat guard: Start above"
+      },
+      "guard_below": {
+        "name": "Heat guard: Only below"
+      },
+      "dry_dew_below": {
+        "name": "Drying limit: dew point stops below"
+      },
+      "dry_humidity_below": {
+        "name": "Drying limit: humidity stops below"
+      },
+      "air_percent": {
+        "name": "Move the air: Speed"
+      },
+      "air_difference_on": {
+        "name": "Move the air: Start at a difference of"
+      },
+      "air_difference_off": {
+        "name": "Move the air: Stop below a difference of"
+      },
+      "outdoor_off_above": {
+        "name": "Warm days: Block heating above"
+      },
+      "outdoor_on_below": {
+        "name": "Warm days: Release below"
+      },
+      "cascade_base": {
+        "name": "Night cascade: Zero point"
+      },
+      "cascade_drift": {
+        "name": "Night cascade: Drift per hour of sleep"
+      },
+      "cascade_fan_cap": {
+        "name": "Night cascade: Fan at most"
+      },
+      "cascade_fan_cap_hot": {
+        "name": "Night cascade: Fan at most on hot nights"
+      },
+      "cascade_fan_floor": {
+        "name": "Night cascade: Fan at least"
+      },
+      "cascade_fan_floor_cooling": {
+        "name": "Night cascade: Fan at least while cooling"
+      },
+      "cascade_hot": {
+        "name": "Night cascade: Hot night from"
+      },
+      "cascade_cold": {
+        "name": "Night cascade: Too cold below"
+      },
+      "cascade_limit_early": {
+        "name": "Night cascade: AC lower limit at the start of sleep"
+      },
+      "cascade_limit_mid": {
+        "name": "Night cascade: AC lower limit from 4 hours"
+      },
+      "cascade_limit_late": {
+        "name": "Night cascade: AC lower limit from 6 hours"
+      },
+      "heater_offset": {
+        "name": "Offset {device}"
+      },
+      "heater_kd": {
+        "name": "Brake {device}"
+      },
+      "valve_limit": {
+        "name": "Valves: count as open from"
+      },
+      "valve_wait_min": {
+        "name": "Valves: warn after"
+      }
+    },
+    "switch": {
+      "wake_fallback_on": {
+        "name": "Heat up without an alarm too"
+      },
+      "air_while_heating": {
+        "name": "Move the air: While heating"
+      },
+      "air_while_cooling": {
+        "name": "Move the air: While cooling"
+      },
+      "learn": {
+        "name": "Learn the brake from the overshoot"
+      },
+      "use_device_temp": {
+        "name": "Heating: Convert the setpoint to the device sensor"
+      },
+      "fan_boost": {
+        "name": "Cooling: Turn the fan up on a large gap"
+      },
+      "routine_sleep": {
+        "name": "Routine: Sleep and presence"
+      },
+      "routine_wake": {
+        "name": "Routine: Wake-up heating"
+      },
+      "routine_way_home": {
+        "name": "Routine: Way home"
+      },
+      "routine_guard": {
+        "name": "Routine: Heat guard"
+      },
+      "routine_cascade": {
+        "name": "Routine: Night cascade"
+      },
+      "routine_dry": {
+        "name": "Routine: Drying limit"
+      },
+      "routine_air": {
+        "name": "Routine: Move the air"
+      },
+      "hold_devices": {
+        "name": "Hold the devices against changes"
+      }
+    },
+    "time": {
+      "wake_fallback": {
+        "name": "Heat up without an alarm at"
+      },
+      "guard_from": {
+        "name": "Heat guard: Not before"
+      },
+      "guard_until": {
+        "name": "Heat guard: Not after"
+      }
+    },
+    "select": {
+      "reference_heat": {
+        "name": "Heating: Regulate on",
+        "state": {
+          "temperature": "Real temperature",
+          "humidex": "Humidex",
+          "comfort": "Comfort temperature"
+        }
+      },
+      "reference_cool": {
+        "name": "Cooling: Regulate on",
+        "state": {
+          "temperature": "Real temperature",
+          "humidex": "Humidex",
+          "comfort": "Comfort temperature"
+        }
+      },
+      "heat_source": {
+        "name": "Heat with",
+        "state": {
+          "radiators": "Radiators only",
+          "air_conditioner": "Air conditioner only",
+          "both": "Radiators and air conditioner"
+        }
+      },
+      "tuning": {
+        "name": "Optimize regulation",
+        "state": {
+          "manual": "Manual",
+          "observe": "Observe only",
+          "automatic": "Automatic"
+        }
+      }
+    },
+    "binary_sensor": {
+      "sensor_stale": {
+        "name": "Room sensor failed"
+      },
+      "frost_active": {
+        "name": "Frost protection active"
+      },
+      "valve_stuck": {
+        "name": "Valve does not close"
+      }
+    },
+    "button": {
+      "reset_learning": {
+        "name": "Forget what was learned"
+      }
+    }
+  },
+  "exceptions": {
+    "heat_locked": {
+      "message": "{room}: the heating lock applies here, the heating cannot be operated."
+    },
+    "limits_order": {
+      "message": "The lower limit has to stay below the upper one."
+    }
+  }
+}

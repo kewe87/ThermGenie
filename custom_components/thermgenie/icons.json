@@ -1,0 +1,308 @@
+{
+  "entity": {
+    "climate": {
+      "thermgenie": {
+        "default": "mdi:thermostat",
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:tune-variant",
+            "state": {
+              "frost": "mdi:snowflake-alert",
+              "eco": "mdi:leaf",
+              "comfort": "mdi:sofa",
+              "boost": "mdi:rocket-launch",
+              "none": "mdi:hand-back-right"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "overshoot": {
+        "default": "mdi:chart-bell-curve"
+      },
+      "brake_factor": {
+        "default": "mdi:brain"
+      },
+      "humidex": {
+        "default": "mdi:sun-thermometer-outline"
+      },
+      "dew_point": {
+        "default": "mdi:water-thermometer-outline"
+      },
+      "comfort_temperature": {
+        "default": "mdi:thermometer-water"
+      },
+      "blocked_by": {
+        "default": "mdi:hand-back-left-outline"
+      },
+      "device_command": {
+        "default": "mdi:radiator"
+      },
+      "wake_at": {
+        "default": "mdi:alarm"
+      },
+      "tuning_state": {
+        "default": "mdi:tune-vertical"
+      },
+      "tuned_kp": {
+        "default": "mdi:alpha-p-circle-outline"
+      },
+      "tuned_ki": {
+        "default": "mdi:alpha-i-circle-outline"
+      }
+    },
+    "number": {
+      "heat_frost": {
+        "default": "mdi:snowflake-alert"
+      },
+      "heat_eco": {
+        "default": "mdi:leaf"
+      },
+      "heat_comfort": {
+        "default": "mdi:sofa"
+      },
+      "heat_boost": {
+        "default": "mdi:rocket-launch"
+      },
+      "cool_eco": {
+        "default": "mdi:leaf"
+      },
+      "cool_comfort": {
+        "default": "mdi:sofa"
+      },
+      "cool_boost": {
+        "default": "mdi:rocket-launch"
+      },
+      "kp": {
+        "default": "mdi:tune-vertical"
+      },
+      "ki": {
+        "default": "mdi:tune-vertical"
+      },
+      "kd": {
+        "default": "mdi:car-brake-low-pressure"
+      },
+      "offset_max": {
+        "default": "mdi:arrow-expand-vertical"
+      },
+      "integral_limit": {
+        "default": "mdi:sigma"
+      },
+      "kp_cool": {
+        "default": "mdi:tune-vertical"
+      },
+      "ki_cool": {
+        "default": "mdi:tune-vertical"
+      },
+      "kd_cool": {
+        "default": "mdi:car-brake-low-pressure"
+      },
+      "offset_max_cool": {
+        "default": "mdi:arrow-expand-vertical"
+      },
+      "integral_limit_cool": {
+        "default": "mdi:sigma"
+      },
+      "period_min": {
+        "default": "mdi:timer-sync-outline"
+      },
+      "dtemp": {
+        "default": "mdi:stairs"
+      },
+      "boost_minutes": {
+        "default": "mdi:timer-outline"
+      },
+      "sensor_timeout_min": {
+        "default": "mdi:timer-alert-outline"
+      },
+      "window_open_delay": {
+        "default": "mdi:window-open-variant"
+      },
+      "window_close_delay": {
+        "default": "mdi:window-open-variant"
+      },
+      "wake_lead_min": {
+        "default": "mdi:alarm"
+      },
+      "approach_below": {
+        "default": "mdi:home-import-outline"
+      },
+      "approach_target": {
+        "default": "mdi:home-import-outline"
+      },
+      "guard_above": {
+        "default": "mdi:shield-sun-outline"
+      },
+      "guard_below": {
+        "default": "mdi:shield-sun-outline"
+      },
+      "dry_dew_below": {
+        "default": "mdi:water-percent"
+      },
+      "dry_humidity_below": {
+        "default": "mdi:water-percent"
+      },
+      "air_percent": {
+        "default": "mdi:fan"
+      },
+      "air_difference_on": {
+        "default": "mdi:fan"
+      },
+      "air_difference_off": {
+        "default": "mdi:fan"
+      },
+      "outdoor_off_above": {
+        "default": "mdi:sun-thermometer"
+      },
+      "outdoor_on_below": {
+        "default": "mdi:sun-thermometer"
+      },
+      "cascade_base": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_drift": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_fan_cap": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_fan_cap_hot": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_fan_floor": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_fan_floor_cooling": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_hot": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_cold": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_limit_early": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_limit_mid": {
+        "default": "mdi:weather-night"
+      },
+      "cascade_limit_late": {
+        "default": "mdi:weather-night"
+      },
+      "heater_offset": {
+        "default": "mdi:arrow-up-down"
+      },
+      "heater_kd": {
+        "default": "mdi:car-brake-low-pressure"
+      },
+      "valve_limit": {
+        "default": "mdi:valve-open"
+      },
+      "valve_wait_min": {
+        "default": "mdi:timer-sand"
+      }
+    },
+    "time": {
+      "wake_fallback": {
+        "default": "mdi:alarm"
+      },
+      "guard_from": {
+        "default": "mdi:shield-sun-outline"
+      },
+      "guard_until": {
+        "default": "mdi:shield-sun-outline"
+      }
+    },
+    "select": {
+      "reference_heat": {
+        "default": "mdi:target"
+      },
+      "reference_cool": {
+        "default": "mdi:target"
+      },
+      "heat_source": {
+        "default": "mdi:radiator",
+        "state": {
+          "radiators": "mdi:radiator",
+          "air_conditioner": "mdi:air-conditioner",
+          "both": "mdi:heat-wave"
+        }
+      },
+      "tuning": {
+        "default": "mdi:tune-vertical",
+        "state": {
+          "manual": "mdi:hand-back-right-outline",
+          "observe": "mdi:eye-outline",
+          "automatic": "mdi:auto-fix"
+        }
+      }
+    },
+    "switch": {
+      "wake_fallback_on": {
+        "default": "mdi:alarm"
+      },
+      "air_while_heating": {
+        "default": "mdi:fan"
+      },
+      "air_while_cooling": {
+        "default": "mdi:fan"
+      },
+      "learn": {
+        "default": "mdi:brain"
+      },
+      "use_device_temp": {
+        "default": "mdi:thermometer-lines"
+      },
+      "fan_boost": {
+        "default": "mdi:rocket-launch"
+      },
+      "routine_sleep": {
+        "default": "mdi:bed-outline"
+      },
+      "routine_wake": {
+        "default": "mdi:alarm"
+      },
+      "routine_way_home": {
+        "default": "mdi:home-import-outline"
+      },
+      "routine_guard": {
+        "default": "mdi:shield-sun-outline"
+      },
+      "routine_cascade": {
+        "default": "mdi:weather-night"
+      },
+      "routine_dry": {
+        "default": "mdi:water-percent"
+      },
+      "routine_air": {
+        "default": "mdi:fan"
+      },
+      "hold_devices": {
+        "default": "mdi:lock-check-outline"
+      }
+    },
+    "binary_sensor": {
+      "frost_active": {
+        "default": "mdi:snowflake-alert"
+      },
+      "valve_stuck": {
+        "default": "mdi:valve-closed"
+      }
+    },
+    "button": {
+      "reset_learning": {
+        "default": "mdi:restore"
+      }
+    }
+  },
+  "services": {
+    "reset_learning": {
+      "service": "mdi:restore"
+    },
+    "set_routine": {
+      "service": "mdi:robot-outline"
+    }
+  }
+}

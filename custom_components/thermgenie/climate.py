@@ -404,6 +404,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             "presets": {k: self.conf[k] for k in DEFAULT_PRESETS},
             "routines": self.routines.status(dt_util.utcnow()),
             "routines_off": sorted(self.routines.off),
+            "reference": self.conf[CONF_REFERENCE_COOL if self.profile == "cool" else CONF_REFERENCE_HEAT],
             "guard_last_start": self.routines.guard_last,
         }
         if self.lock.enabled:

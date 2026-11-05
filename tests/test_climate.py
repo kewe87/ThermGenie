@@ -726,3 +726,12 @@ def test_ai_structure_uses_valid_selectors():
 
     for field in structure().values():
         assert selector.selector(field["selector"])
+
+
+async def test_the_card_learns_what_the_room_is_regulated_on(hass, radio):
+    devices(hass)
+    await setup(hass, humidity_sensor=SENSOR, reference_heat="comfort", reference_cool="humidex")
+    await service(hass, "set_hvac_mode", hvac_mode="heat")
+    assert hass.states.get(ENTITY).attributes["reference"] == "comfort"
+    await service(hass, "set_hvac_mode", hvac_mode="cool")
+    assert hass.states.get(ENTITY).attributes["reference"] == "humidex"

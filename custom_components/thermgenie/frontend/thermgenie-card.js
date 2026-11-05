@@ -605,8 +605,9 @@ class ThermGeniePopup extends HTMLElement {
   climate(hass, a) {
     const values = [
       ["humidity", a.current_humidity, (v) => `${number(hass, v, 0)} %`],
-      ["felt", a.comfort_temperature, (v) => degrees(hass, v)],
-      ["humidex", a.humidex, (v) => number(hass, v)],
+      // Of the two felt values only the one the room is regulated on says something here
+      ["felt", a.reference === "comfort" ? a.comfort_temperature : null, (v) => degrees(hass, v)],
+      ["humidex", a.reference === "humidex" ? a.humidex : null, (v) => number(hass, v)],
       ["dewPoint", a.dew_point, (v) => degrees(hass, v)],
     ].filter(([, value]) => value !== null && value !== undefined);
     if (!values.length) return "";

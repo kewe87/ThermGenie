@@ -11,10 +11,10 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/kewe87/thermgenie",
+  "documentation": "https://github.com/kewe87/thermgenie/blob/main/docs/en/manual.md",
   "integration_type": "device",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/kewe87/thermgenie/issues",
   "requirements": [],
-  "version": "0.7.0"
+  "version": "0.7.1"
 }

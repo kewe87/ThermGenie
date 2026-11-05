@@ -18,6 +18,8 @@ ankommt.
   <img src="docs/de/control.png" alt="Bedienoberfläche mit Drehregler, Betriebsart und Profilen" width="720">
 </p>
 
+Alle Funktionen und Automatiken im Detail beschreibt das [Handbuch](docs/de/handbuch.md).
+
 ## Vergleich mit dem Generic Thermostat
 
 Das in Home Assistant enthaltene [Generic Thermostat](https://www.home-assistant.io/integrations/generic_thermostat/)
@@ -104,7 +106,7 @@ Entität hinterlegt ist.
 | Außentemperatur | `sensor` | Heizsperre an warmen Tagen |
 | Ventilstellung je Heizgerät | `sensor` | Ventilüberwachung, Heizsperre |
 | Vorlauftemperatur | `sensor` | Lernen der Bremse |
-| Anwesenheit | `person`, `device_tracker`, `binary_sensor` | Absenkung bei Abwesenheit |
+| Anwesenheit | `person`, `device_tracker`, `binary_sensor` | Absenkung bei Abwesenheit (zusammen mit Schlaf), Heimweg, Hitzeschutz, Nachtkaskade |
 | Schlaf | `binary_sensor`, `input_boolean` | Nachtabsenkung |
 | Wecker, feste Uhrzeit | `input_datetime`, `sensor` | Aufheizen vor dem Wecken |
 | Richtung und Entfernung | `sensor` | Heimweg, Hitzeschutz |

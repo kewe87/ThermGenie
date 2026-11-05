@@ -18,6 +18,8 @@ reaches the room.
   <img src="docs/en/control.png" alt="Control panel with dial, mode and presets" width="720">
 </p>
 
+The [manual](docs/en/manual.md) describes every function and routine in detail.
+
 ## Comparison with Generic Thermostat
 
 The [Generic Thermostat](https://www.home-assistant.io/integrations/generic_thermostat/) included in Home Assistant
@@ -103,7 +105,7 @@ is assigned.
 | Outdoor temperature | `sensor` | Heating block on warm days |
 | Valve position per heating device | `sensor` | Valve monitoring, heating lock |
 | Flow temperature | `sensor` | Learning the brake |
-| Presence | `person`, `device_tracker`, `binary_sensor` | Setback during absence |
+| Presence | `person`, `device_tracker`, `binary_sensor` | Setback during absence (together with sleep), way home, heat guard, night cascade |
 | Sleep | `binary_sensor`, `input_boolean` | Night setback |
 | Alarm, fixed time | `input_datetime`, `sensor` | Heating up before waking |
 | Direction and distance | `sensor` | Way home, heat guard |

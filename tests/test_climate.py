@@ -737,12 +737,12 @@ async def test_the_card_learns_what_the_room_is_regulated_on(hass, radio):
     assert hass.states.get(ENTITY).attributes["reference"] == "humidex"
 
 
-async def test_a_room_clearly_too_warm_shuts_the_radiator_until_it_has_cooled(hass, radio):
+async def test_a_room_too_warm_shuts_the_radiator_until_it_is_back_at_the_target(hass, radio):
     devices(hass)
     hass.states.async_set(SENSOR, "21.0")
     entry = await setup(hass)
     await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
-    for temperature, shut in ((21.4, False), (21.5, True), (21.3, True), (21.2, False), (21.4, False)):
+    for temperature, shut in ((21.1, False), (21.2, True), (21.1, True), (21.0, False), (21.1, False)):
         hass.states.async_set(SENSOR, str(temperature))
         await entry.runtime_data.climate._async_regulate()
         assert (radio.setpoints(WZ)[-1] == 4.5) is shut, temperature

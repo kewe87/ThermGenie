@@ -144,7 +144,7 @@ thermostat, the devices are brought in line at once.
 
 **Two exceptions for radiators,** because radiator valves close slowly:
 
-- **Room clearly too warm:** From 0.5 K above the target, the radiator gets its lowest setpoint instead of slowly counting down. Below 0.2 K above the target, it regulates normally again. These limits also apply with *Convert the setpoint to the device sensor*.
+- **Room clearly too warm:** From 0.2 K above the target, the radiator gets its lowest setpoint instead of slowly counting down. Once the room is back at the target, it regulates normally again. These limits also apply with *Convert the setpoint to the device sensor*.
 - **Lower target:** The I part saved up is cleared at once, so that it does not overshoot the new target.
 
 Cooling has its own set of these values. The defaults fit most rooms. Change them only in small steps and then watch for a few
@@ -498,7 +498,7 @@ Urgent and critical levels use the format of the iOS Companion app. Other receiv
 | --- | --- |
 | Room does not reach the target | Correction at its limit (*Largest setpoint shift*), check the setpoint under Diagnostic. Device at maximum or no heating power. |
 | Room overshoots the target | The brake is off by default: raise *D gain*, for example to 0.5, and let it learn |
-| Setpoint sits at the minimum of the device | The room is at least 0.5 K above the target. This is intended. |
+| Setpoint sits at the minimum of the device | The room is above the target, by at least 0.2 K when it closed. This is intended. |
 | Regulation reacts slowly | Check the regulation period and the smallest step. Changes below 0.5 K are not sent. |
 | No heating despite heat mode | Check *Blocked by* under Diagnostic. Window open or warm days? Right heat source? |
 | Air conditioner does not heat | Check *Heat with*. Does the device offer the `heat` mode and can it be reached? |

@@ -145,7 +145,7 @@ Batterien. Nach einer Bedienung werden die Geräte sofort angeglichen.
 
 **Zwei Ausnahmen für Heizkörper,** weil Thermostatventile träge schließen:
 
-- **Raum deutlich zu warm:** Ab 0,5 K über dem Sollwert erhält der Heizkörper seinen niedrigsten Sollwert, statt langsam herunterzuzählen. Unter 0,2 K über dem Sollwert regelt er wieder normal. Die Grenzen gelten auch mit *Sollwert auf den Gerätefühler umrechnen*.
+- **Raum deutlich zu warm:** Ab 0,2 K über dem Sollwert erhält der Heizkörper seinen niedrigsten Sollwert, statt langsam herunterzuzählen. Sobald der Raum wieder beim Sollwert ist, regelt er normal weiter. Die Grenzen gelten auch mit *Sollwert auf den Gerätefühler umrechnen*.
 - **Niedrigerer Sollwert:** Der aufgesammelte I-Anteil wird sofort gelöscht, damit er das neue Ziel nicht überheizt.
 
 Fürs Kühlen gibt es einen eigenen Satz dieser Werte. Die Standardwerte passen für die meisten Räume. Ändern Sie nur in kleinen
@@ -502,7 +502,7 @@ Dringende und kritische Stufen sind Angaben im Format der iOS-Companion-App. And
 | --- | --- |
 | Raum erreicht das Ziel nicht | Korrektur am Limit (*Größte Sollwert-Verschiebung*), Stellwert unter Diagnose prüfen. Gerät am Maximum oder keine Heizleistung. |
 | Raum schießt über das Ziel | Bremse ist standardmäßig aus: *D-Anteil* erhöhen, etwa auf 0,5, und lernen lassen |
-| Stellwert steht auf dem Minimum des Geräts | Der Raum liegt mindestens 0,5 K über dem Sollwert. Das ist Absicht. |
+| Stellwert steht auf dem Minimum des Geräts | Der Raum liegt über dem Sollwert, beim Schließen um mindestens 0,2 K. Das ist Absicht. |
 | Regelung reagiert träge | Regeltakt und kleinster Schritt prüfen. Änderungen unter 0,5 K gehen nicht hinaus. |
 | Heizt nicht trotz Betriebsart Heizen | *Gesperrt durch* unter Diagnose prüfen. Fenster offen oder warme Tage? Heizquelle richtig? |
 | Klimaanlage heizt nicht | *Heizen mit* prüfen. Bietet das Gerät den Modus `heat` an und ist es erreichbar? |

@@ -878,6 +878,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
 
     def _wanted(self, device: Device, state, now: datetime, force: bool) -> float | str:
         """Return what the device should do: OFF, a pass-through mode or a setpoint."""
+        was_shut, device.shut = device.shut, False  # only the regulation below keeps it
         if self.lock.frost_active and device.role == "heat":
             return self._fit(self.conf[CONF_LOCK_FROST_OFF], state)
         target = self.active_target + device.offset
@@ -906,7 +907,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 device.regulator.integral = min(device.regulator.integral, 0.0)
             device.last_target = target
         value = device.regulator.update(target, room, periods, now.timestamp(), direction)
-        if device.role == "heat" and self._past_target(device, room):
+        if device.role == "heat" and self._past_target(was_shut, room):
+            device.shut = True
             return self._fit(state.attributes.get("min_temp", self.min_temp), state)
         if self.conf[CONF_DEVICE_TEMP] and (own := state.attributes.get("current_temperature")) is not None:
             value += own - room  # the device sits elsewhere, tell it in its own scale
@@ -915,14 +917,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return device.command  # spare the radio
         return wanted
 
-    def _past_target(self, device: Device, room: float) -> bool:
+    def _past_target(self, was_shut: bool, room: float) -> bool:
         """Radiators are slow to close, so a room clearly too warm gets a clear command.
 
         Measured against the target of the room: an offset only shifts what a single radiator is told.
         """
         over = round(room - self.active_target, 2)
-        device.shut = over > CLOSE_RELEASE if device.shut else over >= CLOSE_ABOVE
-        return device.shut
+        return over > CLOSE_RELEASE if was_shut else over >= CLOSE_ABOVE
 
     def _fit(self, value: float, state) -> float:
         """Round to the regulation step and stay within the limits of the device."""

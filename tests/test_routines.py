@@ -630,6 +630,41 @@ async def test_lock_turns_a_knob_back_at_once_without_any_option(hass, radio, pu
     assert radio.setpoints(SZ)[-1] == 6.0
 
 
+async def _valve_room(hass, own):
+    hass.states.async_set(SZ, "heat", {"hvac_modes": ["off", "heat"], "min_temp": 5, "max_temp": 30, "current_temperature": own})
+    hass.states.async_set(SENSOR, "21.0")
+    hass.states.async_set("sensor.ventil", "0")
+    entry = MockConfigEntry(domain=DOMAIN, title="Bad", data={"temperature_sensor": SENSOR, "heaters": [SZ], "valves": {SZ: "sensor.ventil"}, "notify_service": "notify.handy"})
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    await hass.services.async_call("climate", "set_temperature", {"entity_id": entry.runtime_data.climate.entity_id, "temperature": 22.0, "hvac_mode": "heat"}, blocking=True)
+    await hass.async_block_till_done()
+    return entry
+
+
+async def _valve_open_for_an_hour(hass, freezer):
+    hass.states.async_set("sensor.ventil", "40")
+    await hass.async_block_till_done()
+    freezer.tick(60 * 60)
+    hass.states.async_set("sensor.ventil", "41")
+    await hass.async_block_till_done()
+
+
+async def test_a_warm_radiator_in_a_room_that_needs_heat_is_no_fault(hass, radio, pushes, freezer):
+    await _valve_room(hass, own=26.0)
+    await _valve_open_for_an_hour(hass, freezer)
+    assert not pushes
+
+
+async def test_a_radiator_that_was_shut_and_stays_open_gets_a_warning(hass, radio, pushes, freezer):
+    entry = await _valve_room(hass, own=23.0)
+    hass.states.async_set(SENSOR, "22.6")
+    await entry.runtime_data.climate._async_regulate()
+    await _valve_open_for_an_hour(hass, freezer)
+    assert len(pushes) == 1
+
+
 async def test_a_valve_that_stays_open_gets_a_warning_after_the_waiting_time(hass, radio, pushes, freezer):
     hass.states.async_set(SZ, "heat", {"hvac_modes": ["off", "heat"], "min_temp": 5, "max_temp": 30, "current_temperature": 21})
     hass.states.async_set(SENSOR, "21.0")

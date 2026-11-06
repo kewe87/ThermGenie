@@ -416,11 +416,12 @@ is set up covers these cases.
 
 Under *Hold devices and valves*, set a sensor with the valve opening in percent for each radiator.
 
-A radiator **should be closed** if it is off or its setpoint is at least 1 K below its own measurement. If the valve is then at least at
+A radiator **should be closed** if it is off or ThermGenie shuts it because the room is clearly too warm. If the valve is then at least at
 *A valve counts as open from* (default 5 %), for as long as *Warn after* (default 30 minutes), you receive an urgent message. The binary
 sensor *Valve does not close* becomes active. When the valve closes, it becomes inactive again and the logbook notes this.
 
-Radiator thermostats regulate themselves and do not always follow the setpoint. If you get warnings although everything is fine, raise
+A valve that is merely open above its setpoint does not count as a fault: radiator thermostats often close only some kelvin above it. If
+you still get warnings although everything is fine, raise
 the limit or the waiting time. In a room with a heating lock, an open valve triggers the lock.
 
 ### Failures

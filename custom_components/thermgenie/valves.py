@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_VALVE_LIMIT, CONF_VALVE_WAIT, CONF_VALVES, VALVE_MARGIN
+from .const import CONF_VALVE_LIMIT, CONF_VALVE_WAIT, CONF_VALVES
 from .messages import say
 
 
@@ -28,14 +28,10 @@ class ValveWatch:
         self.stuck: dict[str, float] = {}
 
     def _should_be_closed(self, device) -> bool:
-        """Off, or a setpoint clearly below what the thermostat measures itself."""
-        state = self.climate.device_state(device)
-        if state is None or device.command is None:
+        """Only a clear command counts: valves stay partly open up to some kelvin above a setpoint on their own."""
+        if self.climate.device_state(device) is None or device.command is None:
             return False
-        if device.command == "off":
-            return True
-        own = state.attributes.get("current_temperature")
-        return isinstance(device.command, float) and own is not None and device.command <= own - VALVE_MARGIN
+        return device.command == "off" or device.shut
 
     async def async_check(self) -> None:
         now = dt_util.utcnow()

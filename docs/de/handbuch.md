@@ -419,12 +419,13 @@ Eine hinterlegte Ventilstellung deckt diese Fälle ab.
 
 Hinterlegen Sie unter *Gerät halten und Ventile* für jeden Heizkörper einen Sensor mit der Ventilöffnung in Prozent.
 
-Ein Heizkörper **soll geschlossen sein**, wenn er aus ist oder sein Sollwert mindestens 1 K unter seiner eigenen Messung liegt.
+Ein Heizkörper **soll geschlossen sein**, wenn er aus ist oder ThermGenie ihn schließt, weil der Raum deutlich zu warm ist.
 Steht das Ventil dann mindestens auf *Ventil gilt als offen ab* (Standard 5 %), und das *Warnen nach* (Standard 30 Minuten) lang,
 gibt es eine dringende Meldung. Der Binärsensor *Ventil schließt nicht* wird aktiv. Schließt das Ventil, wird er wieder inaktiv
 und das Logbuch vermerkt dies.
 
-Thermostatventile regeln selbst und nicht immer nach dem Sollwert. Bekommen Sie Warnungen, obwohl alles in Ordnung ist, erhöhen
+Ein Ventil, das nur über seinem Stellwert noch offen steht, gilt nicht als Fehler: Thermostatventile schließen oft erst einige Kelvin
+darüber. Bekommen Sie trotzdem Warnungen, obwohl alles in Ordnung ist, erhöhen
 Sie die Grenze oder die Wartezeit. In einem Raum mit Heizsperre löst ein offenes Ventil die Sperre aus.
 
 ### Ausfälle

@@ -45,6 +45,8 @@ from .const import (
     CONF_HOLD_DEVICES,
     CONF_VALVES,
     CONF_COOLER,
+    CLOSE_ABOVE,
+    CLOSE_RELEASE,
     CONF_DEVICE_TEMP,
     CONF_DTEMP,
     CONF_FAN_BOOST,
@@ -125,6 +127,8 @@ class Device:
     command: float | str | None = None  # last command the device accepted
     last_run: datetime | None = None
     sent_at: datetime | None = None
+    last_target: float | None = None
+    shut: bool = False  # the room is well past the target, the radiator sits on its lowest setpoint
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -896,13 +900,29 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             periods = (now - device.last_run).total_seconds() / 60 / self.conf[CONF_PERIOD]
         device.last_run = now
         direction = 1 if role == "heat" else -1
+        if device.role == "heat":
+            if device.last_target is not None and target < device.last_target:
+                # What was saved up for the higher target would only overshoot the new one
+                device.regulator.integral = min(device.regulator.integral, 0.0)
+            device.last_target = target
         value = device.regulator.update(target, room, periods, now.timestamp(), direction)
+        if device.role == "heat" and self._past_target(device, room):
+            return self._fit(state.attributes.get("min_temp", self.min_temp), state)
         if self.conf[CONF_DEVICE_TEMP] and (own := state.attributes.get("current_temperature")) is not None:
             value += own - room  # the device sits elsewhere, tell it in its own scale
         wanted = self._fit(value, state)
         if not force and isinstance(device.command, float) and abs(wanted - device.command) < self.conf[CONF_DTEMP]:
             return device.command  # spare the radio
         return wanted
+
+    def _past_target(self, device: Device, room: float) -> bool:
+        """Radiators are slow to close, so a room clearly too warm gets a clear command.
+
+        Measured against the target of the room: an offset only shifts what a single radiator is told.
+        """
+        over = round(room - self.active_target, 2)
+        device.shut = over > CLOSE_RELEASE if device.shut else over >= CLOSE_ABOVE
+        return device.shut
 
     def _fit(self, value: float, state) -> float:
         """Round to the regulation step and stay within the limits of the device."""

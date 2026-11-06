@@ -143,6 +143,11 @@ Das Ergebnis wird auf die Schrittweite gerundet und auf den Bereich des Geräts 
 wenn sich der Wert um mindestens *Kleinster Schritt je Funkbefehl* (Standard 0,5 K) ändert. Das schont Funkkanal und
 Batterien. Nach einer Bedienung werden die Geräte sofort angeglichen.
 
+**Zwei Ausnahmen für Heizkörper,** weil Thermostatventile träge schließen:
+
+- **Raum deutlich zu warm:** Ab 0,5 K über dem Sollwert erhält der Heizkörper seinen niedrigsten Sollwert, statt langsam herunterzuzählen. Unter 0,2 K über dem Sollwert regelt er wieder normal. Die Grenzen gelten auch mit *Sollwert auf den Gerätefühler umrechnen*.
+- **Niedrigerer Sollwert:** Der aufgesammelte I-Anteil wird sofort gelöscht, damit er das neue Ziel nicht überheizt.
+
 Fürs Kühlen gibt es einen eigenen Satz dieser Werte. Die Standardwerte passen für die meisten Räume. Ändern Sie nur in kleinen
 Schritten und beobachten Sie danach einige Tage.
 
@@ -496,6 +501,7 @@ Dringende und kritische Stufen sind Angaben im Format der iOS-Companion-App. And
 | --- | --- |
 | Raum erreicht das Ziel nicht | Korrektur am Limit (*Größte Sollwert-Verschiebung*), Stellwert unter Diagnose prüfen. Gerät am Maximum oder keine Heizleistung. |
 | Raum schießt über das Ziel | Bremse ist standardmäßig aus: *D-Anteil* erhöhen, etwa auf 0,5, und lernen lassen |
+| Stellwert steht auf dem Minimum des Geräts | Der Raum liegt mindestens 0,5 K über dem Sollwert. Das ist Absicht. |
 | Regelung reagiert träge | Regeltakt und kleinster Schritt prüfen. Änderungen unter 0,5 K gehen nicht hinaus. |
 | Heizt nicht trotz Betriebsart Heizen | *Gesperrt durch* unter Diagnose prüfen. Fenster offen oder warme Tage? Heizquelle richtig? |
 | Klimaanlage heizt nicht | *Heizen mit* prüfen. Bietet das Gerät den Modus `heat` an und ist es erreichbar? |

@@ -186,8 +186,12 @@ class Routines:
         old = event.data["old_state"]
         if new is None or new.state in INVALID:
             return
-        # After a restart a manually set temperature survives the sensors coming back
-        if (old is None or old.state in INVALID) and self.climate.active_preset == "none":
+        if old is None or old.state in INVALID:
+            # After a restart a manually set temperature survives the sensors coming back
+            if self.climate.active_preset == "none":
+                return
+        # A new position or a move between two zones changes nothing about being home or asleep
+        elif (old.state in (STATE_ON, "home")) == (new.state in (STATE_ON, "home")):
             return
         self.climate.hass.async_create_task(self.async_apply_sleep())
 

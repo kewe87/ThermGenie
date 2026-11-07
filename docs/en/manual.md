@@ -261,7 +261,7 @@ it as well. The state survives restarts.
 | **Behavior** | Asleep or nobody home: Eco preset. Otherwise: Comfort preset. |
 
 The routine only acts on the heating values and does not change the mode. If a state is unknown, nothing happens. A target set by
-hand survives a restart of Home Assistant.
+hand holds until sleep or presence really change, and it also survives a restart of Home Assistant.
 
 ### Wake-up heating
 

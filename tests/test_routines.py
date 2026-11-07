@@ -145,6 +145,36 @@ async def test_sleep_and_absence_follow_the_preset_in_winter_only(hass, radio):
     assert hass.states.get(ENTITY).attributes["profiles"]["cool"]["preset"] == "comfort"
 
 
+async def test_a_manual_target_holds_until_home_or_sleep_really_change(hass, radio):
+    devices(hass)
+    hass.states.async_set(PERSON, "home")
+    hass.states.async_set(SLEEP, "off")
+    await setup(hass, presence_entity=PERSON, sleep_entity=SLEEP)
+    await service(hass, "set_hvac_mode", hvac_mode="heat")
+    await service(hass, "set_temperature", temperature=21.0)
+
+    # A phone reporting its position only changes the attributes of the person
+    hass.states.async_set(PERSON, "home", {"latitude": 1.0})
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY).attributes
+    assert (attributes["preset_mode"], attributes["temperature"]) == ("none", 21.0)
+
+    hass.states.async_set(PERSON, "not_home")
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["preset_mode"] == "eco"
+    await service(hass, "set_temperature", temperature=19.0)
+
+    # Moving between two places away from home does not bring anybody home
+    hass.states.async_set(PERSON, "Arbeit")
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY).attributes
+    assert (attributes["preset_mode"], attributes["temperature"]) == ("none", 19.0)
+
+    hass.states.async_set(PERSON, "home")
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["preset_mode"] == "comfort"
+
+
 async def test_wake_up_heats_before_the_alarm(hass, radio, freezer):
     devices(hass)
     freezer.move_to(NOW)

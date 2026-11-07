@@ -261,7 +261,7 @@ Jede Automatik hat einen Schalter *Automatik: …* auf der Geräteseite und eine
 | **Verhalten** | Schlaf an oder niemand zu Hause: Profil Eco. Sonst: Profil Komfort. |
 
 Die Automatik wirkt nur auf die Heizwerte und schaltet die Betriebsart nicht um. Ist ein Zustand unbekannt, geschieht nichts.
-Ein von Hand gesetzter Sollwert übersteht einen Neustart von Home Assistant.
+Ein von Hand gesetzter Sollwert gilt, bis Schlaf oder Anwesenheit wirklich wechseln, und übersteht auch einen Neustart von Home Assistant.
 
 ### Aufheizen zum Wecken
 

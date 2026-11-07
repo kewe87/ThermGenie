@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.core import SupportsResponse
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.const import EntityCategory
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
 import pytest
@@ -25,6 +25,7 @@ TC = "climate.az"
 SENSOR = "sensor.couch"
 WINDOW = "binary_sensor.fenster"
 OUTDOOR = "sensor.aussen"
+HUMIDITY = "sensor.feuchte"
 
 
 class Radio:
@@ -196,6 +197,78 @@ async def test_no_radio_command_while_nothing_changes(hass, radio):
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=6))
     await hass.async_block_till_done()
     assert radio.calls == []
+
+
+async def test_a_calm_sensor_lives_on_through_the_humidity_of_its_device(hass, radio, freezer):
+    registry = er.async_get(hass)
+    entry = MockConfigEntry(domain="sensor")
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=entry.entry_id, identifiers={("test", "thermostat")})
+    for entity in (SENSOR, HUMIDITY):
+        domain, name = entity.split(".")
+        registry.async_get_or_create(domain, "test", name, suggested_object_id=name, device_id=device.id)
+    devices(hass)
+    hass.states.async_set(HUMIDITY, "50")
+    await setup(hass, humidity_sensor=HUMIDITY)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    for _ in range(3):
+        freezer.tick(timedelta(minutes=100))
+        hass.states.async_set(HUMIDITY, "50")
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["sensor_stale"] is False
+    freezer.tick(timedelta(minutes=130))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["sensor_stale"] is True
+
+
+async def test_humidity_of_another_device_says_nothing_about_the_room_sensor(hass, radio, freezer):
+    devices(hass)
+    hass.states.async_set(HUMIDITY, "50")
+    await setup(hass, humidity_sensor=HUMIDITY)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    for _ in range(2):
+        freezer.tick(timedelta(minutes=70))
+        hass.states.async_set(HUMIDITY, "50")
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["sensor_stale"] is True
+
+
+async def test_silent_humidity_is_not_used_any_more(hass, radio, freezer):
+    devices(hass)
+    hass.states.async_set(HUMIDITY, "50")
+    await setup(hass, humidity_sensor=HUMIDITY)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    assert hass.states.get(ENTITY).attributes["current_humidity"] == 50
+    freezer.tick(timedelta(minutes=721))
+    hass.states.async_set(SENSOR, "20.0")
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes.get("current_humidity") is None
+    assert hass.states.get(ENTITY).attributes["sensor_stale"] is False
+    hass.states.async_set(HUMIDITY, "51")
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["current_humidity"] == 51
+
+
+async def test_silent_outdoor_sensor_lifts_the_warm_day_block(hass, radio, freezer):
+    devices(hass)
+    hass.states.async_set(OUTDOOR, "25.0")
+    await setup(hass, outdoor_sensor=OUTDOOR)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    for _ in range(4):
+        freezer.tick(timedelta(minutes=20))
+        hass.states.async_set(OUTDOOR, "25.0")
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["blocked_by"] == "outdoor"
+    freezer.tick(timedelta(minutes=721))
+    hass.states.async_set(SENSOR, "20.0")
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["blocked_by"] is None
 
 
 async def test_silent_sensor_falls_back_to_the_plain_target(hass, radio):

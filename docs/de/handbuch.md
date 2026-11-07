@@ -54,7 +54,8 @@ Erforderlich sind nur der Raumfühler und mindestens ein Gerät. Alles andere l�
 
 Wählen Sie den Fühler dort, wo die Temperatur zählt, also im Aufenthaltsbereich. Er sollte nicht in der Sonne, über dem
 Heizkörper oder in der Zugluft stehen. Er sollte zudem regelmäßig senden: Bleibt er länger aus als *Raumfühler gilt als
-ausgefallen nach* (Standard 120 Minuten), gilt er als ausgefallen.
+ausgefallen nach* (Standard 120 Minuten), gilt er als ausgefallen. Viele Funkfühler senden nur bei Änderungen. Liegt der
+Feuchtefühler am selben Gerät, zählt deshalb auch seine Meldung als Lebenszeichen. Das Popup zeigt das Alter der letzten Meldung.
 
 ### Einstellungen ändern
 
@@ -433,6 +434,8 @@ Sie die Grenze oder die Wartezeit. In einem Raum mit Heizsperre löst ein offene
 | Ausfall | Verhalten |
 | --- | --- |
 | **Raumfühler** meldet nichts mehr | Die Geräte erhalten den Sollwert und regeln selbst. Binärsensor *Raumfühler ausgefallen*. |
+| **Feuchtefühler** meldet 12 Stunden nichts | Der Wert wird nicht mehr verwendet. Geregelt wird nach der Temperatur, Humidex und gefühlte Temperatur entfallen. |
+| **Außenfühler** meldet 12 Stunden nichts | Eine Warme-Tage-Sperre wird aufgehoben, bis er wieder meldet. |
 | **Ein Gerät** ist nicht erreichbar | Die übrigen laufen weiter. Kommt es zurück, wird es sofort angeglichen. |
 | **Befehl** schlägt fehl | Er wird im nächsten Regeltakt wiederholt. |
 | **Home Assistant** startet neu | Betriebsart, Profile, I-Anteil und abgeschaltete Automatiken bleiben erhalten. Eine laufende Messphase der Optimierung geht verloren. |

@@ -54,7 +54,8 @@ Only the room sensor and at least one device are required. Everything else can b
 
 Place the sensor where the temperature counts, in the occupied area. It should not sit in the sun, above the radiator or in a
 draught. It should also report regularly: if it stays silent for longer than *Room sensor counts as failed after* (default 120
-minutes), it counts as failed.
+minutes), it counts as failed. Many radio sensors only report changes. If the humidity sensor belongs to the same device, its
+report therefore also counts as a sign of life. The popup shows the age of the last report.
 
 ### Changing settings
 
@@ -429,6 +430,8 @@ the limit or the waiting time. In a room with a heating lock, an open valve trig
 | Failure | Behavior |
 | --- | --- |
 | **Room sensor** goes silent | The devices receive the target and regulate themselves. Binary sensor *Room sensor failed*. |
+| **Humidity sensor** silent for 12 hours | The value is not used any more. The room is regulated on temperature, humidex and felt temperature are dropped. |
+| **Outdoor sensor** silent for 12 hours | A warm-day block is lifted until it reports again. |
 | **One device** cannot be reached | The others keep running. When it returns, it is brought in line at once. |
 | **A command** fails | It is repeated in the next cycle. |
 | **Home Assistant** restarts | Mode, presets, I part and routines switched off stay. A running measurement of the optimization is lost. |

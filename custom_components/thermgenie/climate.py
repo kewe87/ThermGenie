@@ -24,7 +24,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN, UnitOfTemperature
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import entity_platform
+from homeassistant.helpers import entity_platform, entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -88,6 +88,7 @@ from .const import (
     FAN_BOOST_GAP,
     FAN_QUIET_MODES,
     OUTDOOR_HOLD_SEC,
+    SLOW_SENSOR_TIMEOUT_MIN,
     PRESET_BOOST,
     PRESET_COMFORT,
     PRESET_ECO,
@@ -384,10 +385,12 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         active = [d.command for d in self._devices if self._active_role() and self._acts(d) and isinstance(d.command, float)]
+        reported = self._last_report(self.conf[CONF_SENSOR], self.conf.get(CONF_HUMIDITY))
         attributes = {
             "profile": self.profile,
             "blocked_by": self._blocked_by(),
             "sensor_stale": self._sensor_stale,
+            "sensor_reported": reported.isoformat() if reported else None,
             "heat_lock": self.lock.enabled,
             "frost_active": self.lock.frost_active,
             "room_temperature": self.real_temperature(),
@@ -477,7 +480,28 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
 
     def _humidity(self) -> float | None:
         entity = self.conf.get(CONF_HUMIDITY)
-        return _as_float(self.hass.states.get(entity)) if entity else None
+        if not entity:
+            return None
+        reported = self._last_report(entity, self.conf[CONF_SENSOR])
+        if reported and (dt_util.utcnow() - reported).total_seconds() / 60 > SLOW_SENSOR_TIMEOUT_MIN:
+            return None
+        return _as_float(self.hass.states.get(entity))
+
+    def _last_report(self, entity: str, partner: str | None) -> datetime | None:
+        """Return when a sensor last reported.
+
+        Radio sensors often only report changes. A calm value still counts as
+        alive as long as another value of the same device keeps reporting.
+        """
+        state = self.hass.states.get(entity)
+        other = self.hass.states.get(partner) if partner else None
+        if state is None or other is None:
+            return state.last_reported if state else None
+        registry = er.async_get(self.hass)
+        first, second = registry.async_get(entity), registry.async_get(partner)
+        if first and second and first.device_id and first.device_id == second.device_id:
+            return max(state.last_reported, other.last_reported)
+        return state.last_reported
 
     def _reference(self, role: str) -> float | None:
         """Return the value the room is regulated on. Without humidity that is the plain temperature."""
@@ -494,8 +518,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
 
     def _fresh_reference(self, role: str, now: datetime) -> float | None:
         """Return the reference for regulating, None if the sensor went silent."""
-        state = self.hass.states.get(self.conf[CONF_SENSOR])
-        age = (now - state.last_reported).total_seconds() / 60 if state else 0
+        reported = self._last_report(self.conf[CONF_SENSOR], self.conf.get(CONF_HUMIDITY))
+        age = (now - reported).total_seconds() / 60 if reported else 0
         value = self._reference(role)
         self._sensor_stale = value is None or age > self.conf[CONF_SENSOR_TIMEOUT]
         return None if self._sensor_stale else value
@@ -519,7 +543,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     def _update_outdoor(self, now: datetime) -> None:
         """Block heating on warm days, with hysteresis and a hold time."""
         entity = self.conf.get(CONF_OUTDOOR)
-        value = _as_float(self.hass.states.get(entity)) if entity else None
+        state = self.hass.states.get(entity) if entity else None
+        if state and (now - state.last_reported).total_seconds() / 60 > SLOW_SENSOR_TIMEOUT_MIN:
+            # Nobody knows how warm it is now, so the room decides again
+            self._outdoor_blocked = False
+            self._outdoor_since = None
+            return
+        value = _as_float(state) if state else None
         if value is None:
             self._outdoor_since = None
             return

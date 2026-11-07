@@ -9,6 +9,7 @@ const TEXT = {
     window: "Window open",
     outdoor: "Warm outside",
     stale: "Room sensor silent",
+    reported: "Last sensor report",
     deviceDown: "not reachable", room: "Room", target: "Target", now: "now",
     humidity: "Humidity", humidex: "Humidex", dewPoint: "Dew point", felt: "Comfort",
     modes: "Mode", presets: "Presets", climate: "Indoor climate", routines: "Automation", devices: "Devices", history: "Last 24 hours",
@@ -31,6 +32,7 @@ const TEXT = {
     window: "Fenster offen",
     outdoor: "Draußen warm",
     stale: "Raumfühler meldet nichts",
+    reported: "Letzte Fühlermeldung",
     deviceDown: "nicht erreichbar", room: "Raum", target: "Soll", now: "jetzt",
     humidity: "Feuchte", humidex: "Humidex", dewPoint: "Taupunkt", felt: "Gefühlt",
     modes: "Betriebsart", presets: "Profile", climate: "Raumklima", routines: "Automatik", devices: "Geräte", history: "Letzte 24 Stunden",
@@ -96,6 +98,11 @@ function setTarget(entityId, value, delay = COMMAND_DELAY_MS) {
     call("set_temperature", { entity_id: entityId, temperature: value }, () => pending.delete(entityId));
   }, delay);
   pending.set(entityId, wish);
+}
+
+function reportAge(reported) {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(reported)) / 60000));
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")} h`;
 }
 
 function stepTarget(state, direction) {
@@ -609,6 +616,7 @@ class ThermGeniePopup extends HTMLElement {
       ["felt", a.reference === "comfort" ? a.comfort_temperature : null, (v) => degrees(hass, v)],
       ["humidex", a.reference === "humidex" ? a.humidex : null, (v) => number(hass, v)],
       ["dewPoint", a.dew_point, (v) => degrees(hass, v)],
+      ["reported", a.sensor_reported, (v) => reportAge(v)],
     ].filter(([, value]) => value !== null && value !== undefined);
     if (!values.length) return "";
     const cells = values.map(([key, value, format]) => `<div><b>${format(value)}</b><span>${text(hass, key)}</span></div>`);

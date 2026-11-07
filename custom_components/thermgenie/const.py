@@ -190,6 +190,7 @@ HOLD_SEC = 1200  # sensor conditions of the routines have to hold this long
 GUARD_OFF_SEC = 1800
 GUARD_COOLDOWN_SEC = 43200
 OUTDOOR_HOLD_SEC = 1800
+SLOW_SENSOR_TIMEOUT_MIN = 720  # humidity and outdoor sensors may be calm for long, after this they are not used
 COMMAND_TIMEOUT_SEC = 30
 HOLD_WAIT_SEC = 30  # after a command a radio device may still report its old value, and the radio has a budget
 CLOSE_ABOVE = 0.2  # K past the target that shut a radiator instead of slowly counting its setpoint down

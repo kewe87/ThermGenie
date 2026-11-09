@@ -164,7 +164,9 @@ as an entity, so that it cannot be lifted through dashboards or voice assistants
 
 ## Installation
 
-1. Under *Settings → Marketplace*, add the repository `https://github.com/kewe87/thermgenie` as long as ThermGenie is not in the catalog yet, and install ThermGenie. Alternatively, copy `custom_components/thermgenie` to your Home Assistant directory. Then restart Home Assistant.
+1. Under *Settings → Marketplace*, search for **ThermGenie**, install it and restart Home Assistant.
+
+   If ThermGenie does not show up there, add `https://github.com/kewe87/ThermGenie` as a custom repository. Without the Marketplace, copy `custom_components/thermgenie` to your Home Assistant directory. In both cases, restart Home Assistant afterwards.
 2. Add the integration under *Settings → Devices & services → Add integration → ThermGenie*.
 3. A wizard guides you through the basic setup. All further assignments are available under *Configure*.
 

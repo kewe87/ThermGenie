@@ -166,7 +166,9 @@ nicht als Entität verfügbar, damit sie sich nicht über Dashboards oder Sprach
 
 ## Installation
 
-1. Fügen Sie unter *Einstellungen → Marketplace* das Repository `https://github.com/kewe87/thermgenie` hinzu, solange ThermGenie noch nicht im Katalog steht, und installieren Sie ThermGenie. Alternativ kopieren Sie `custom_components/thermgenie` in Ihr Home-Assistant-Verzeichnis. Starten Sie Home Assistant anschließend neu.
+1. Suchen Sie unter *Einstellungen → Marketplace* nach **ThermGenie**, installieren Sie es und starten Sie Home Assistant neu.
+
+   Falls ThermGenie dort nicht erscheint, fügen Sie `https://github.com/kewe87/ThermGenie` als benutzerdefiniertes Repository hinzu. Ohne Marketplace kopieren Sie `custom_components/thermgenie` in Ihr Home-Assistant-Verzeichnis. Starten Sie Home Assistant in beiden Fällen anschließend neu.
 2. Fügen Sie die Integration unter *Einstellungen → Geräte & Dienste → Integration hinzufügen → ThermGenie* hinzu.
 3. Ein Assistent führt durch die Grundeinrichtung. Alle weiteren Zuordnungen finden Sie unter *Konfigurieren*.
 

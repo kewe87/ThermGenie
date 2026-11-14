@@ -180,6 +180,10 @@ types of the candidate entities plus the current settings of the thermostat, but
 
 The interface, card, notifications and spoken messages appear in German on a German system and in English otherwise.
 
+## Like ThermGenie?
+
+Then I'd be happy about a ⭐ on [GitHub](https://github.com/kewe87/ThermGenie). It helps others find the project. Bugs and ideas are welcome as [issues](https://github.com/kewe87/ThermGenie/issues).
+
 ## License
 
 Copyright (c) 2026 kewe87. ThermGenie is licensed under the [GNU General Public License v3.0](LICENSE). Anyone who

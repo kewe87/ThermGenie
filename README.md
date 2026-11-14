@@ -184,6 +184,10 @@ Thermostats übermittelt, jedoch keine Messwerte oder Zustände.
 Oberfläche, Karte, Meldungen und Sprachausgaben erscheinen auf Deutsch, wenn das System auf Deutsch eingestellt ist,
 und andernfalls auf Englisch.
 
+## Gefällt dir ThermGenie?
+
+Dann freue ich mich über einen ⭐ auf [GitHub](https://github.com/kewe87/ThermGenie). Das hilft anderen, das Projekt zu finden. Fehler und Ideen gerne als [Issue](https://github.com/kewe87/ThermGenie/issues).
+
 ## Lizenz
 
 Copyright (c) 2026 kewe87. ThermGenie steht unter der [GNU General Public License v3.0](LICENSE). Wer eine veränderte

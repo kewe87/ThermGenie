@@ -146,7 +146,7 @@ Batterien. Nach einer Bedienung werden die Geräte sofort angeglichen.
 
 **Zwei Ausnahmen für Heizkörper,** weil Thermostatventile träge schließen:
 
-- **Raum deutlich zu warm:** Ab 0,2 K über dem Sollwert erhält der Heizkörper seinen niedrigsten Sollwert, statt langsam herunterzuzählen. Sobald der Raum wieder beim Sollwert ist, regelt er normal weiter. Die Grenzen gelten auch mit *Sollwert auf den Gerätefühler umrechnen*.
+- **Raum deutlich zu warm:** Ab 0,2 K über dem Sollwert erhält der Heizkörper seinen niedrigsten Sollwert, statt langsam herunterzuzählen. Solange er zu ist, sammelt der I-Anteil kein weiteres Minus an, damit das nächste Heizen nicht verzögert startet. Sobald der Raum wieder beim Sollwert ist, regelt er normal weiter. Die Grenzen gelten auch mit *Sollwert auf den Gerätefühler umrechnen*.
 - **Niedrigerer Sollwert:** Der aufgesammelte I-Anteil wird sofort gelöscht, damit er das neue Ziel nicht überheizt.
 
 Fürs Kühlen gibt es einen eigenen Satz dieser Werte. Die Standardwerte passen für die meisten Räume. Ändern Sie nur in kleinen

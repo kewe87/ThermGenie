@@ -936,9 +936,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 # What was saved up for the higher target would only overshoot the new one
                 device.regulator.integral = min(device.regulator.integral, 0.0)
             device.last_target = target
+        before = device.regulator.integral
         value = device.regulator.update(target, room, periods, now.timestamp(), direction)
         if device.role == "heat" and self._past_target(was_shut, room):
             device.shut = True
+            # The radiator is closed already, a growing negative sum would only delay the next heating.
+            # A positive sum may still shrink, a negative one stays where it was.
+            device.regulator.integral = max(device.regulator.integral, min(before, 0.0))
             return self._fit(state.attributes.get("min_temp", self.min_temp), state)
         if self.conf[CONF_DEVICE_TEMP] and (own := state.attributes.get("current_temperature")) is not None:
             value += own - room  # the device sits elsewhere, tell it in its own scale

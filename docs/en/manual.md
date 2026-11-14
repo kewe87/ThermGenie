@@ -145,7 +145,7 @@ thermostat, the devices are brought in line at once.
 
 **Two exceptions for radiators,** because radiator valves close slowly:
 
-- **Room clearly too warm:** From 0.2 K above the target, the radiator gets its lowest setpoint instead of slowly counting down. Once the room is back at the target, it regulates normally again. These limits also apply with *Convert the setpoint to the device sensor*.
+- **Room clearly too warm:** From 0.2 K above the target, the radiator gets its lowest setpoint instead of slowly counting down. While it is closed, the I share saves up no further minus, so the next heating does not start late. Once the room is back at the target, it regulates normally again. These limits also apply with *Convert the setpoint to the device sensor*.
 - **Lower target:** The I part saved up is cleared at once, so that it does not overshoot the new target.
 
 Cooling has its own set of these values. The defaults fit most rooms. Change them only in small steps and then watch for a few

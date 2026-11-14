@@ -821,6 +821,36 @@ async def test_a_room_too_warm_shuts_the_radiator_until_it_is_back_at_the_target
         assert (radio.setpoints(WZ)[-1] == 4.5) is shut, temperature
 
 
+async def test_a_shut_radiator_saves_up_no_negative_sum(hass, radio):
+    devices(hass)
+    hass.states.async_set(SENSOR, "21.0")
+    entry = await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    climate = entry.runtime_data.climate
+    device = next(d for d in climate._devices if d.entity_id == WZ)
+    device.regulator.integral = -2.0
+    hass.states.async_set(SENSOR, "22.5")
+    for _ in range(20):
+        device.last_run = None
+        await climate._async_regulate()
+    assert radio.setpoints(WZ)[-1] == 4.5
+    assert device.regulator.integral == pytest.approx(-2.0)
+
+
+async def test_a_shut_radiator_still_lets_a_positive_sum_shrink(hass, radio):
+    devices(hass)
+    hass.states.async_set(SENSOR, "21.0")
+    entry = await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    climate = entry.runtime_data.climate
+    device = next(d for d in climate._devices if d.entity_id == WZ)
+    device.regulator.integral = 6.0
+    hass.states.async_set(SENSOR, "22.5")
+    for _ in range(20):
+        device.last_run = None
+        await climate._async_regulate()
+    assert 0.0 <= device.regulator.integral < 1.0
+
 async def test_shutting_also_outweighs_the_shift_to_the_device_sensor(hass, radio):
     devices(hass)
     hass.states.async_set(WZ, "heat", {"hvac_modes": ["off", "heat"], "min_temp": 4.5, "max_temp": 30.5, "current_temperature": 26.0})

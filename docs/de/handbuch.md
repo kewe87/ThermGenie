@@ -247,7 +247,7 @@ womit gerade geregelt wird. Vorschläge und Schritte stehen zudem im Logbuch.
 drei bis fünf Tage. Die Optimierung betrifft nur das Heizen über Heizkörper. Thermostatventile mit eigener Regelung reagieren
 träge, deshalb sind die Schritte bewusst klein.
 
-### Thermal Wellbeing: Ventile direkt steuern
+### Direktsteuerung der Ventile
 
 Heizkörperthermostate, deren Ventilöffnung sich setzen lässt (zum Beispiel Sonoff TRVZB über Zigbee2MQTT), kann
 ThermGenie direkt steuern. Statt eines verschobenen Sollwerts erhält das Ventil eine Öffnung in Prozent. Dafür lernt
@@ -255,12 +255,12 @@ ThermGenie laufend ein kleines Wärmemodell des Raums: wie stark die Heizkörper
 wie schnell der Raum nach außen Wärme verliert und wie träge die Heizkörper sind. Mit diesem Modell plant es die
 Öffnung zwei Stunden voraus und schließt rechtzeitig, bevor der Raum überschwingt. Bis das Modell den Raum kennt,
 meist nach zwei bis drei Tagen, regelt ein einfacher Regler die Ventile. Das Gelernte bleibt über Neustarts erhalten
-und erscheint als Sensor *Thermal Wellbeing Ventil*, samt Kurve der nötigen Öffnung je Außentemperatur.
+und erscheint als Sensor *Ventilöffnung*, samt Kurve der nötigen Öffnung je Außentemperatur.
 
 Das Thermostat behält den Sollwert als Rückfall. Fällt der Raumfühler aus, bekommt es sein Ventil zurück und regelt
 selbst. Bei offenem Fenster, ausgeschalteter Heizung oder warmem Tag schließt das Ventil. Heizkörper ohne
 Ventilsteuerung bleiben im Sollwert-Betrieb, beide Arten lassen sich in einem Raum mischen. Eingerichtet wird es unter
-*Einstellungen → Thermal Wellbeing*, die Ventil-Entitäten werden am Gerät erkannt.
+*Einstellungen → Direktsteuerung*, die Ventil-Entitäten werden am Gerät erkannt.
 
 **Werte im Sensor:** `control` zeigt, wer regelt (`pi` Anlernregler, `model` Modell, `closed` geschlossen,
 `device` Thermostat selbst). `heating_power`, `heat_loss` und `delay_min` beschreiben den Raum, `fit_k_per_h` wie genau

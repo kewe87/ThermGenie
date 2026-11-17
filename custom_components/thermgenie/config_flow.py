@@ -62,7 +62,7 @@ from .const import (
     CONF_VALVES,
     CONF_VALVE_LIMIT,
     CONF_VALVE_WAIT,
-    CONF_WELLBEING,
+    CONF_VALVE_CONTROL,
     OPENING_SUFFIX,
     CONF_LOCK_WAIT,
     CONF_NAME,
@@ -371,13 +371,13 @@ class _Steps:
         names = "\n".join(f"- **{i}:** {self._device_name(e)}" for i, e in enumerate(heaters, 1))
         return self.async_show_form(step_id="valves", data_schema=vol.Schema(schema), description_placeholders={"devices": names})
 
-    async def async_step_wellbeing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Thermal Wellbeing: radiators whose valve opening ThermGenie sets itself, all others keep their setpoint."""
+    async def async_step_valve_control(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Valve control: radiators whose valve opening ThermGenie sets itself, all others keep their setpoint."""
         heaters = self.values.get(CONF_HEATERS, [])
         if user_input is not None:
-            self.values[CONF_WELLBEING] = {e: user_input[f"opening_{i}"] for i, e in enumerate(heaters, 1) if user_input.get(f"opening_{i}")}
-            return await self._after("wellbeing")
-        known = self.values.get(CONF_WELLBEING, {})
+            self.values[CONF_VALVE_CONTROL] = {e: user_input[f"opening_{i}"] for i, e in enumerate(heaters, 1) if user_input.get(f"opening_{i}")}
+            return await self._after("valve_control")
+        known = self.values.get(CONF_VALVE_CONTROL, {})
         schema: dict[Any, Any] = {}
         found = []
         for i, e in enumerate(heaters, 1):
@@ -388,7 +388,7 @@ class _Steps:
             schema[vol.Optional(f"opening_{i}", description={"suggested_value": known.get(e) if known else suggestion})] = _entity(["number"])
         names = "\n".join(f"- **{i}:** {self._device_name(e)}" for i, e in enumerate(heaters, 1))
         return self.async_show_form(
-            step_id="wellbeing",
+            step_id="valve_control",
             data_schema=vol.Schema(schema),
             description_placeholders={"devices": names, "found": "\n".join(found) or "-"},
         )
@@ -526,7 +526,7 @@ class ThermGenieOptionsFlow(_Steps, OptionsFlow):
         pages = ["ai"] if self.hass.states.async_entity_ids("ai_task") else []
         pages += ["devices", "outdoor", "presets", "regulation", "routines", "air"]
         if self.values.get(CONF_HEATERS):
-            pages += ["wellbeing", "lock", "valves"]
+            pages += ["valve_control", "lock", "valves"]
         if self.values.get(CONF_COOLER):
             pages.append("summer")
         return self.async_show_menu(step_id="init", menu_options=[*pages, "save"])

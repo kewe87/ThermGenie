@@ -154,7 +154,7 @@
           "outdoor": "Warm days",
           "air": "Move the air",
           "valves": "Hold devices and valves",
-          "wellbeing": "Thermal Wellbeing"
+          "valve_control": "Direct drive"
         },
         "menu_option_descriptions": {
           "devices": "Room sensor, radiators, air conditioner and window",
@@ -168,7 +168,7 @@
           "outdoor": "Block heating while it is warm outside",
           "air": "A fan evens out the air, when heating and when cooling",
           "valves": "Set back changes at the device, report open valves",
-          "wellbeing": "Drive the valves directly and learn the room"
+          "valve_control": "Set the valve opening directly and learn the room"
         }
       },
       "devices": {
@@ -497,9 +497,9 @@
           "valve_wait_min": "Warn after"
         }
       },
-      "wellbeing": {
-        "title": "Thermal Wellbeing",
-        "description": "With Thermal Wellbeing ThermGenie sets the valve opening of a radiator itself instead of a setpoint. It learns how the room heats up and cools down, from the flow and outdoor temperature, and plans the opening ahead so the room neither overshoots nor cools down. Until it knows the room it drives the valves with a simple regulator.\n\nChoose the **valve opening** number of each radiator that should be driven this way (for example the Sonoff TRVZB via Zigbee2MQTT, `valve_opening_degree`). The closing degree is found by itself. Radiators without one keep the setpoint mode. If the room sensor fails, the valve is handed back to the thermostat.\n\n{devices}\n\n**Found on the devices:**\n{found}",
+      "valve_control": {
+        "title": "Direct drive",
+        "description": "With direct drive ThermGenie sets the valve opening of a radiator itself instead of a setpoint. It learns how the room heats up and cools down, from the flow and outdoor temperature, and plans the opening ahead so the room neither overshoots nor cools down. Until it knows the room it drives the valves with a simple regulator.\n\nChoose the **valve opening** number of each radiator that should be driven this way (for example the Sonoff TRVZB via Zigbee2MQTT, `valve_opening_degree`). The closing degree is found by itself. Radiators without one keep the setpoint mode. If the room sensor fails, the valve is handed back to the thermostat.\n\n{devices}\n\n**Found on the devices:**\n{found}",
         "data": {
           "opening_1": "Valve opening 1",
           "opening_2": "Valve opening 2",
@@ -639,8 +639,8 @@
       "tuned_ki": {
         "name": "Current ki"
       },
-      "wellbeing_valve": {
-        "name": "Thermal Wellbeing valve"
+      "valve_opening": {
+        "name": "Valve opening"
       }
     },
     "number": {

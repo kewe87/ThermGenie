@@ -154,7 +154,7 @@
           "outdoor": "Warme Tage",
           "air": "Luft verteilen",
           "valves": "Gerät halten und Ventile",
-          "wellbeing": "Thermal Wellbeing"
+          "valve_control": "Direktsteuerung"
         },
         "menu_option_descriptions": {
           "devices": "Raumfühler, Heizkörper, Klimaanlage und Fenster",
@@ -168,7 +168,7 @@
           "outdoor": "Heizung sperren, solange es draußen warm ist",
           "air": "Ventilator gleicht die Luft im Raum aus, beim Heizen und Kühlen",
           "valves": "Verstellen am Gerät zurücksetzen, offene Ventile melden",
-          "wellbeing": "Ventile direkt steuern und den Raum lernen"
+          "valve_control": "Ventilöffnung direkt stellen und den Raum lernen"
         }
       },
       "devices": {
@@ -497,9 +497,9 @@
           "valve_wait_min": "Warnen nach"
         }
       },
-      "wellbeing": {
-        "title": "Thermal Wellbeing",
-        "description": "Mit Thermal Wellbeing stellt ThermGenie die Ventilöffnung eines Heizkörpers selbst ein statt eines Sollwerts. Es lernt, wie der Raum aufheizt und auskühlt, mit Vorlauf- und Außentemperatur, und plant die Öffnung voraus, damit der Raum weder überschwingt noch auskühlt. Bis es den Raum kennt, regelt ein einfacher Regler die Ventile.\n\nWähle für jeden Heizkörper, der so gesteuert werden soll, die Zahl der **Ventilöffnung** (zum Beispiel beim Sonoff TRVZB über Zigbee2MQTT `valve_opening_degree`). Den Schließgrad findet ThermGenie selbst. Heizkörper ohne bleiben im Sollwert-Modus. Fällt der Raumfühler aus, bekommt das Thermostat sein Ventil zurück.\n\n{devices}\n\n**An den Geräten gefunden:**\n{found}",
+      "valve_control": {
+        "title": "Direktsteuerung",
+        "description": "Mit der Direktsteuerung stellt ThermGenie die Ventilöffnung eines Heizkörpers selbst ein statt eines Sollwerts. Es lernt, wie der Raum aufheizt und auskühlt, mit Vorlauf- und Außentemperatur, und plant die Öffnung voraus, damit der Raum weder überschwingt noch auskühlt. Bis es den Raum kennt, regelt ein einfacher Regler die Ventile.\n\nWähle für jeden Heizkörper, der so gesteuert werden soll, die Zahl der **Ventilöffnung** (zum Beispiel beim Sonoff TRVZB über Zigbee2MQTT `valve_opening_degree`). Den Schließgrad findet ThermGenie selbst. Heizkörper ohne bleiben im Sollwert-Modus. Fällt der Raumfühler aus, bekommt das Thermostat sein Ventil zurück.\n\n{devices}\n\n**An den Geräten gefunden:**\n{found}",
         "data": {
           "opening_1": "Ventilöffnung 1",
           "opening_2": "Ventilöffnung 2",
@@ -639,8 +639,8 @@
       "tuned_ki": {
         "name": "Aktuelles ki"
       },
-      "wellbeing_valve": {
-        "name": "Thermal Wellbeing Ventil"
+      "valve_opening": {
+        "name": "Ventilöffnung"
       }
     },
     "number": {

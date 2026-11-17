@@ -1,4 +1,4 @@
-"""Thermal Wellbeing: drives the radiator valves itself and learns how the room behaves. No Home Assistant imports.
+"""Valve control: drives the radiator valves itself and learns how the room behaves. No Home Assistant imports.
 
 The room is described by a small heat balance, in kelvin per hour:
 

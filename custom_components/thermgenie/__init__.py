@@ -22,7 +22,7 @@ from homeassistant.loader import async_get_integration
 from .const import CONF_HEATERS, CONF_LOCK_VALVE, CONF_VALVES, DOMAIN
 from .learning import Learner
 from .optimizer import Optimizer
-from .wellbeing import RoomModel
+from .valve_control import RoomModel
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 CARD_FILE = Path(__file__).parent / "frontend" / "thermgenie-card.js"
@@ -41,11 +41,11 @@ class Runtime:
     climate: Any = None
     live_options: dict[str, Any] | None = None  # options the running thermostat has taken over itself
     unique_ids: set[str] = field(default_factory=set)
-    model: RoomModel = field(default_factory=RoomModel)  # what Thermal Wellbeing learned about the room
+    model: RoomModel = field(default_factory=RoomModel)  # what the valve control learned about the room
 
     def stored(self) -> dict[str, Any]:
         """Return what is kept across restarts."""
-        return {**self.learner.as_dict(), "optimizer": self.optimizer.as_dict(), "wellbeing": self.model.as_dict()}
+        return {**self.learner.as_dict(), "optimizer": self.optimizer.as_dict(), "valve_model": self.model.as_dict()}
 
     def updated(self) -> None:
         """Tell the helper entities that something changed."""
@@ -110,7 +110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
     device = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)}, name=entry.title, manufacturer="ThermGenie", model="Thermostat")
     stored = await store.async_load() or {}
-    entry.runtime_data = Runtime(store, Learner(stored), device, Optimizer(stored.get("optimizer")), model=RoomModel(stored.get("wellbeing")))
+    entry.runtime_data = Runtime(store, Learner(stored), device, Optimizer(stored.get("optimizer")), model=RoomModel(stored.get("valve_model")))
     await hass.config_entries.async_forward_entry_setups(entry, [Platform.CLIMATE])
     await hass.config_entries.async_forward_entry_setups(entry, HELPERS)
     registry = er.async_get(hass)

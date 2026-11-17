@@ -1,11 +1,11 @@
-"""Tests of Thermal Wellbeing: the room model, the plan and the valve commands."""
+"""Tests of the valve control: the room model, the plan and the valve commands."""
 
 from math import exp, sin, pi
 import random
 
 import pytest
 
-from custom_components.thermgenie.wellbeing import RoomModel, ValvePlanner, heat_input, round_valve
+from custom_components.thermgenie.valve_control import RoomModel, ValvePlanner, heat_input, round_valve
 
 
 def simulate(days, outdoor_base=3.0, seed=1, tau=30.0, a=2.0, b=0.08, c=0.2):

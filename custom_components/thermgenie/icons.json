@@ -50,6 +50,24 @@
       },
       "tuned_ki": {
         "default": "mdi:alpha-i-circle-outline"
+      },
+      "tendency": {
+        "default": "mdi:arrow-right",
+        "state": {
+          "warming": "mdi:arrow-top-right",
+          "holding": "mdi:arrow-right",
+          "cooling": "mdi:arrow-bottom-right"
+        }
+      },
+      "feeling": {
+        "default": "mdi:emoticon-neutral-outline",
+        "state": {
+          "cold": "mdi:snowflake",
+          "cool": "mdi:emoticon-sad-outline",
+          "good": "mdi:emoticon-happy-outline",
+          "warm": "mdi:emoticon-neutral-outline",
+          "hot": "mdi:fire"
+        }
       }
     },
     "number": {
@@ -281,6 +299,9 @@
       },
       "hold_devices": {
         "default": "mdi:lock-check-outline"
+      },
+      "wellbeing": {
+        "default": "mdi:heart-pulse"
       }
     },
     "binary_sensor": {
@@ -303,6 +324,12 @@
     },
     "set_routine": {
       "service": "mdi:robot-outline"
+    },
+    "feel": {
+      "service": "mdi:emoticon-happy-outline"
+    },
+    "set_wellbeing": {
+      "service": "mdi:heart-pulse"
     }
   }
 }

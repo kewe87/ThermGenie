@@ -20,6 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     climate = entry.runtime_data.climate
     entities: list[SensorEntity] = [BlockedSensor(entry, "blocked_by")]
     entities += [DeviceCommandSensor(entry, device) for device in climate.devices]
+    entities += [TendencySensor(entry, "tendency"), FeelingSensor(entry, "feeling")]
     if conf.get(CONF_HUMIDITY):
         entities += [ComfortValueSensor(entry, key) for key in ("humidex", "dew_point", "comfort_temperature")]
     if conf.get(CONF_WAKE) or conf.get(CONF_SLEEP):
@@ -186,3 +187,30 @@ class ValveOpeningSensor(ThermostatEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         return self.climate.valve_status() or {}
+
+
+class TendencySensor(ThermostatEntity, SensorEntity):
+    """Whether the room gets warmer, cooler or holds: what Thermal Wellbeing shows instead of numbers."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["warming", "holding", "cooling"]
+
+    @property
+    def native_value(self) -> str:
+        return self.climate.tendency
+
+
+class FeelingSensor(ThermostatEntity, SensorEntity):
+    """The last feeling that was told."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["cold", "cool", "good", "warm", "hot"]
+
+    @property
+    def native_value(self) -> str | None:
+        return self.climate.runtime.feel.last_feeling
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        feel = self.climate.runtime.feel
+        return {"answers": sum(1 for a in feel.answers if a.weight == 1.0), "asking": feel.ask_at is not None}

@@ -23,6 +23,9 @@ const TEXT = {
     failed: "Command failed", pickEntity: "Pick a ThermGenie thermostat", notFound: "not found",
     way_homeName: "Way home", sleepName: "Sleep and presence", wakeName: "Wake-up heating", guardName: "Heat guard", cascadeName: "Night cascade", dryName: "Drying limit",
     description: "Thermostat with custom popup", entity: "Thermostat", name: "Name", control: "Control", details: "Details",
+    thermostat: "Thermostat", wellbeing: "Thermal Wellbeing", howFeels: "How does it feel?", warmer: "Warmer", cooler: "Cooler",
+    warming: "Getting warmer", holding: "Holding", cooling_t: "Getting cooler", learned: "Learned from {count} answers", noAnswers: "Tell how it feels, it learns from every answer",
+    f_cold: "Cold", f_cool: "A bit cool", f_good: "Just right", f_warm: "A bit warm", f_hot: "Too warm", frostWell: "Frost protection",
   },
   de: {
     off: "Aus", heat: "Heizen", cool: "Kühlen", dry: "Trocknen", fan_only: "Lüfter",
@@ -46,9 +49,21 @@ const TEXT = {
     failed: "Befehl fehlgeschlagen", pickEntity: "ThermGenie-Thermostat wählen", notFound: "nicht gefunden",
     way_homeName: "Heimweg", sleepName: "Schlaf und Anwesenheit", wakeName: "Aufheizen zum Wecken", guardName: "Hitzeschutz", cascadeName: "Nachtkaskade", dryName: "Entfeuchtungs-Grenze",
     description: "Thermostat mit eigenem Popup", entity: "Thermostat", name: "Name", control: "Bedienung", details: "Details",
+    thermostat: "Thermostat", wellbeing: "Thermal Wellbeing", howFeels: "Wie fühlt es sich an?", warmer: "Wärmer", cooler: "Kühler",
+    warming: "Wird wärmer", holding: "Hält", cooling_t: "Wird kühler", learned: "Gelernt aus {count} Rückmeldungen", noAnswers: "Sag, wie es sich anfühlt, jede Antwort lernt mit",
+    f_cold: "Kalt", f_cool: "Etwas kühl", f_good: "Passt", f_warm: "Etwas warm", f_hot: "Zu warm", frostWell: "Frostschutz",
   },
 };
 
+const FEELINGS = ["cold", "cool", "good", "warm", "hot"];
+const FACES = { cold: "🥶", cool: "🙁", good: "😊", warm: "😐", hot: "🥵" };
+const TENDENCY = { warming: ["mdi:arrow-top-right", "warming", "heat"], holding: ["mdi:arrow-right", "holding", "idle"], cooling: ["mdi:arrow-bottom-right", "cooling_t", "cool"] };
+const wellbeing = (state) => !!state?.attributes.wellbeing;
+const face = (state) => FACES[state.attributes.feel?.last_feeling] || FACES.good;
+function feel(entityId, feeling) {
+  haptic();
+  call("feel", { entity_id: entityId, feeling }, null, "thermgenie");
+}
 const MODE_ICONS = { off: "mdi:power", heat: "mdi:fire", cool: "mdi:snowflake", dry: "mdi:water-percent", fan_only: "mdi:fan" };
 const PRESET_ICONS = { frost: "mdi:snowflake-thermometer", eco: "mdi:leaf", comfort: "mdi:sofa", boost: "mdi:rocket-launch" };
 const COOL = "#2a78d6";
@@ -124,11 +139,15 @@ function call(service, data, onError, domain = "climate") {
 
 function describe(hass, state) {
   const a = state.attributes;
-  if (a.frost_active) return { key: "frost", icon: "mdi:snowflake-alert", label: text(hass, "frostActive", { off: degrees(hass, a.lock_frost_off) }), tone: "heat" };
+  if (a.frost_active) return { key: "frost", icon: "mdi:snowflake-alert", label: a.wellbeing ? text(hass, "frostWell") : text(hass, "frostActive", { off: degrees(hass, a.lock_frost_off) }), tone: "heat" };
   if (a.heat_lock && state.state === "off") return { key: "lock", icon: "mdi:lock", label: text(hass, "locked"), tone: "off" };
   if (a.blocked_by === "window") return { key: "window", icon: "mdi:window-open-variant", label: text(hass, "window"), tone: "warn" };
   if (a.blocked_by === "outdoor") return { key: "outdoor", icon: "mdi:weather-sunny", label: text(hass, "outdoor"), tone: "idle" };
   if (state.state === "off") return { key: "off", icon: "mdi:power", label: text(hass, "off"), tone: "off" };
+  if (a.wellbeing) {
+    const [name, label, tone] = TENDENCY[a.tendency] || TENDENCY.holding;
+    return { key: a.tendency, icon: name, label: text(hass, label), tone };
+  }
   const action = a.hvac_action || "idle";
   const tone = { heating: "heat", cooling: "cool", drying: "cool", fan: "cool" }[action] || "idle";
   const name = { heating: "mdi:fire", cooling: "mdi:snowflake", drying: "mdi:water-percent", fan: "mdi:fan" }[action] || "mdi:thermostat";
@@ -213,7 +232,14 @@ class ThermGenieCard extends HTMLElement {
     const info = describe(hass, state);
     const down = Object.values(a.devices || {}).filter((d) => !d.available).length;
     const name = this.config.name || a.friendly_name;
-    const controls = canSetTarget(state) && state.state !== "off"
+    const well = wellbeing(state);
+    const controls = well && canSetTarget(state)
+      ? `<div class="stepper">
+           <button data-key="down" data-feel="warm" aria-label="${text(hass, "cooler")}">${icon("mdi:minus")}</button>
+           <span class="value face">${face(state)}</span>
+           <button data-key="up" data-feel="cool" aria-label="${text(hass, "warmer")}">${icon("mdi:plus")}</button>
+         </div>`
+      : canSetTarget(state) && state.state !== "off"
       ? `<div class="stepper">
            <button data-key="down" data-step="-1" aria-label="${text(hass, "lower")}">${icon("mdi:minus")}</button>
            <span class="value"><small>${text(hass, "target")}</small>${degrees(hass, shownTarget(state))}</span>
@@ -227,7 +253,7 @@ class ThermGenieCard extends HTMLElement {
           <span class="name">${esc(name)}${down ? ` <ha-icon class="alert" icon="mdi:alert-circle"></ha-icon>` : ""}</span>
           <span class="status">${esc(info.label)}</span>
         </span>
-        <span class="room"><small>${text(hass, "room")}</small>${degrees(hass, a.room_temperature ?? a.current_temperature)}</span>
+        ${well ? "" : `<span class="room"><small>${text(hass, "room")}</small>${degrees(hass, a.room_temperature ?? a.current_temperature)}</span>`}
       </button>
       ${controls}`);
   }
@@ -254,6 +280,7 @@ class ThermGenieCard extends HTMLElement {
         .stepper button { width: 34px; height: 36px; display: grid; place-items: center; border-radius: 18px; color: var(--primary-text-color); }
         .stepper ha-icon { --mdc-icon-size: 16px; }
         .stepper .value { min-width: 38px; font-size: 13px; }
+        .stepper .face { font-size: 20px; }
         .missing { padding: 16px; color: var(--error-color, #d33); }
       </style>
       <ha-card><div id="body"></div></ha-card>`;
@@ -262,7 +289,9 @@ class ThermGenieCard extends HTMLElement {
       const button = event.target.closest("button");
       if (!button) return;
       const state = this._hass.states[this.config.entity];
-      if (button.dataset.step) {
+      if (button.dataset.feel) {
+        feel(this.config.entity, button.dataset.feel);
+      } else if (button.dataset.step) {
         stepTarget(state, Number(button.dataset.step));
         this.render();
       } else {
@@ -399,8 +428,8 @@ class ThermGeniePopup extends HTMLElement {
     this.$.now = $("now");
     $("backdrop").addEventListener("click", () => this.close());
     $("close").addEventListener("click", () => this.close());
-    $("down").addEventListener("click", () => this.step(-1));
-    $("up").addEventListener("click", () => this.step(1));
+    $("down").addEventListener("click", () => (wellbeing(this.state) ? feel(this.entityId, "warm") : this.step(-1)));
+    $("up").addEventListener("click", () => (wellbeing(this.state) ? feel(this.entityId, "cool") : this.step(1)));
     this.$.sheet.addEventListener("click", (event) => this.click(event));
     this.bindDial();
   }
@@ -413,8 +442,14 @@ class ThermGeniePopup extends HTMLElement {
   click(event) {
     const button = event.target.closest("button");
     if (!button) return;
-    const { mode, preset, go, tab, routine, enable } = button.dataset;
-    if (routine) {
+    const { mode, preset, go, tab, routine, enable, feeling, well } = button.dataset;
+    if (feeling) {
+      feel(this.entityId, feeling);
+    } else if (well) {
+      haptic();
+      pending.delete(this.entityId);
+      call("set_wellbeing", { entity_id: this.entityId, enabled: well === "on" }, null, "thermgenie");
+    } else if (routine) {
       haptic();
       call("set_routine", { entity_id: this.entityId, routine, enabled: enable === "true" }, null, "thermgenie");
     } else if (tab) {
@@ -455,7 +490,7 @@ class ThermGeniePopup extends HTMLElement {
       return Math.round((this.low + (along / DIAL.sweep) * (this.high - this.low)) / step) * step;
     };
     dial.addEventListener("pointerdown", (event) => {
-      if (!canSetTarget(this.state)) return;
+      if (!canSetTarget(this.state) || wellbeing(this.state)) return;
       const value = valueAt(event);
       if (value === null) return;
       dial.setPointerCapture(event.pointerId);
@@ -482,7 +517,7 @@ class ThermGeniePopup extends HTMLElement {
     this.$.dial.setAttribute("tabindex", "0");
     this.$.dial.setAttribute("role", "slider");
     this.$.dial.addEventListener("keydown", (event) => {
-      if (event.target !== this.$.dial || !canSetTarget(this.state)) return;
+      if (event.target !== this.$.dial || !canSetTarget(this.state) || wellbeing(this.state)) return;
       const direction = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[event.key];
       if (!direction) return;
       event.preventDefault();
@@ -508,8 +543,28 @@ class ThermGeniePopup extends HTMLElement {
 
     draw(this, this.$.notice, a.sensor_stale ? `<p class="tone-warn">${text(hass, "stale")}</p>` : "");
 
+    const well = wellbeing(state);
+    this.$.dial.classList.toggle("well", well);
+    if (well) {
+      // No number anywhere: a face, the tendency and plus or minus
+      const [, label] = TENDENCY[a.tendency] || TENDENCY.holding;
+      this.$.label.textContent = text(hass, "wellbeing");
+      this.$.big.textContent = face(state);
+      this.$.small.textContent = state.state === "off" ? text(hass, "off") : text(hass, label);
+      for (const segment of this.$.segments) segment.style.opacity = 0.35;
+      this.$.handle.style.display = "none";
+      this.$.now.style.display = "none";
+      this.$.dial.removeAttribute("aria-valuenow");
+      this.$.dial.setAttribute("tabindex", "-1");
+      const down = this.shadowRoot.getElementById("down");
+      const up = this.shadowRoot.getElementById("up");
+      down.hidden = up.hidden = !editable;
+      down.setAttribute("aria-label", text(hass, "cooler"));
+      up.setAttribute("aria-label", text(hass, "warmer"));
+    }
     // Off means off: only the measured room temperature is left
     const showTarget = editable;
+    if (!well) {
     this.$.label.textContent = showTarget ? text(hass, "target") : text(hass, "room");
     this.$.big.textContent = degrees(hass, showTarget ? target : room);
     this.$.small.textContent = showTarget && room !== null ? `${text(hass, "room")} ${degrees(hass, room)}` : "";
@@ -545,6 +600,7 @@ class ThermGeniePopup extends HTMLElement {
     down.hidden = up.hidden = !editable;
     down.setAttribute("aria-label", text(hass, "lower"));
     up.setAttribute("aria-label", text(hass, "raise"));
+    }
 
     const tab = this.tab || "control";
     for (const name of ["control", "details"]) {
@@ -553,11 +609,31 @@ class ThermGeniePopup extends HTMLElement {
       button.setAttribute("aria-selected", tab === name);
       this.shadowRoot.getElementById(`page-${name}`).hidden = tab !== name;
     }
-    draw(this, this.$.sections, [this.routines(hass, state, true), this.modes(hass, state), this.presets(hass, state)].join(""));
-    draw(this, this.$.details, [this.routines(hass, state), this.climate(hass, a), this.devices(hass, a)].join(""));
+    draw(this, this.$.sections, [this.feelings(hass, state), this.routines(hass, state, true), this.modes(hass, state), this.presets(hass, state), this.switcher(hass, state)].join(""));
+    draw(this, this.$.details, well ? [this.routines(hass, state), this.learned(hass, a)].join("") : [this.routines(hass, state), this.climate(hass, a), this.devices(hass, a)].join(""));
+    this.shadowRoot.querySelector(".s-chart").hidden = well;
     this.shadowRoot.getElementById("chart-title").textContent = text(hass, "history");
     draw(this, this.$.footer, `
       ${hass.user?.is_admin ? `<button class="link" data-key="settings" data-go="settings">${icon("mdi:cog-outline")}${text(hass, "allSettings")}</button>` : ""}`);
+  }
+
+  feelings(hass, state) {
+    if (!wellbeing(state) || !canSetTarget(state)) return "";
+    const last = state.attributes.feel?.last_feeling;
+    const buttons = FEELINGS.map((f) => `<button class="choice feel ${last === f ? "active" : ""}" data-key="feel-${f}" data-feeling="${f}" aria-label="${text(hass, `f_${f}`)}">
+        <span class="emoji">${FACES[f]}</span><span>${text(hass, `f_${f}`)}</span></button>`);
+    return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div></section>`;
+  }
+
+  switcher(hass, state) {
+    const well = wellbeing(state);
+    const option = (on, name, iconName) => `<button class="choice ${well === on ? "active" : ""} tone-idle" data-key="well-${on}" data-well="${on ? "on" : "off"}" aria-pressed="${well === on}">${icon(iconName)}<span>${text(hass, name)}</span></button>`;
+    return `<section class="s-switch"><div class="choices">${option(false, "thermostat", "mdi:thermostat")}${option(true, "wellbeing", "mdi:heart-pulse")}</div></section>`;
+  }
+
+  learned(hass, a) {
+    const count = a.feel?.answers || 0;
+    return `<section><h3>${text(hass, "wellbeing")}</h3><p class="hint">${esc(count ? text(hass, "learned", { count }) : text(hass, "noAnswers"))}</p></section>`;
   }
 
   modes(hass, state) {
@@ -577,7 +653,7 @@ class ThermGeniePopup extends HTMLElement {
     const buttons = (a.preset_modes || []).filter((p) => p !== "none").map((preset) => {
       const value = a.presets?.[`${a.profile}_${preset}`];
       return `<button class="choice ${a.preset_mode === preset ? "active" : ""} tone-${a.profile}" data-key="preset-${preset}" data-preset="${preset}" aria-pressed="${a.preset_mode === preset}">
-        ${icon(PRESET_ICONS[preset] || "mdi:thermostat")}<span>${text(hass, preset)}</span><small>${degrees(hass, value)}</small></button>`;
+        ${icon(PRESET_ICONS[preset] || "mdi:thermostat")}<span>${text(hass, preset)}</span>${a.wellbeing ? "" : `<small>${degrees(hass, value)}</small>`}</button>`;
     });
     return `<section><h3>${text(hass, "presets")}</h3><div class="choices">${buttons.join("")}</div></section>`;
   }
@@ -793,6 +869,11 @@ const POPUP_CSS = `
   .choice.active { font-weight: 500; background: color-mix(in srgb, var(--tone) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--tone); }
   .choice.active ha-icon { color: var(--tone); }
   .choice.active small { color: inherit; }
+  .feels .choice { --tone: var(--primary-color, #2a78d6); font-size: 11px; }
+  .feels .emoji { font-size: 24px; line-height: 1; }
+  #dial.well #big { font-size: 64px; }
+  .s-switch { margin-top: 4px; }
+  .hint { margin: 0; font-size: 13px; color: var(--secondary-text-color); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px 6px 8px; font-size: 13px; border-radius: 16px; color: var(--secondary-text-color); background: color-mix(in srgb, var(--primary-text-color) 6%, transparent); }
   .chip ha-icon { --mdc-icon-size: 16px; }

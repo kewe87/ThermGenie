@@ -540,6 +540,15 @@
         "observe": "Observe only",
         "automatic": "Automatic"
       }
+    },
+    "feeling": {
+      "options": {
+        "cold": "Cold",
+        "cool": "A bit cool",
+        "good": "Just right",
+        "warm": "A bit warm",
+        "hot": "Too warm"
+      }
     }
   },
   "services": {
@@ -558,6 +567,26 @@
         "enabled": {
           "name": "Enabled",
           "description": "On or off."
+        }
+      }
+    },
+    "feel": {
+      "name": "Tell how it feels",
+      "description": "Thermal Wellbeing learns from it what feels right at this time of day and in this weather.",
+      "fields": {
+        "feeling": {
+          "name": "Feeling",
+          "description": "How it feels in the room."
+        }
+      }
+    },
+    "set_wellbeing": {
+      "name": "Switch Thermal Wellbeing",
+      "description": "Thermal Wellbeing follows how people feel instead of a setpoint.",
+      "fields": {
+        "enabled": {
+          "name": "On",
+          "description": "On for Thermal Wellbeing, off for the thermostat."
         }
       }
     }
@@ -641,6 +670,24 @@
       },
       "valve_opening": {
         "name": "Valve opening"
+      },
+      "tendency": {
+        "name": "Tendency",
+        "state": {
+          "warming": "Getting warmer",
+          "holding": "Holding",
+          "cooling": "Getting cooler"
+        }
+      },
+      "feeling": {
+        "name": "Feeling",
+        "state": {
+          "cold": "Cold",
+          "cool": "A bit cool",
+          "good": "Just right",
+          "warm": "A bit warm",
+          "hot": "Too warm"
+        }
       }
     },
     "number": {
@@ -837,6 +884,9 @@
       },
       "hold_devices": {
         "name": "Hold the devices against changes"
+      },
+      "wellbeing": {
+        "name": "Thermal Wellbeing"
       }
     },
     "time": {

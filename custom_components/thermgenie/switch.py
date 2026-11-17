@@ -20,6 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         [
             *(SettingSwitch(entry, setting) for setting in SWITCHES if setting.applies(conf)),
             *(RoutineSwitch(entry, routine) for routine, applies in ROUTINES.items() if applies(conf)),
+            WellbeingSwitch(entry, "wellbeing"),
         ],
     )
 
@@ -54,3 +55,17 @@ class RoutineSwitch(ThermostatEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.climate.async_set_routine(self._routine, False)
+
+
+class WellbeingSwitch(ThermostatEntity, SwitchEntity):
+    """Thermal Wellbeing or the thermostat, the same as the switch at the bottom of the card."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.climate.wellbeing
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.climate.async_set_wellbeing(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.climate.async_set_wellbeing(False)

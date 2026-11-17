@@ -267,6 +267,21 @@ Ventilsteuerung bleiben im Sollwert-Betrieb, beide Arten lassen sich in einem Ra
 das Modell vorhersagt, `curve` die nötige Öffnung je Außentemperatur beim aktuellen Ziel. *Gelerntes vergessen* setzt
 auch das Raummodell zurück.
 
+### Thermal Wellbeing: nach Gefühl statt nach Zahl
+
+Jeder Raum lässt sich zwischen *Thermostat* und *Thermal Wellbeing* umschalten, unten im Popup, mit dem Schalter
+*Thermal Wellbeing* oder der Aktion `thermgenie.set_wellbeing`. In Thermal Wellbeing gibt es keine Gradzahl mehr, weder
+auf der Karte noch im Popup. Man sagt nur, wie es sich anfühlt: 🥶 kalt, 🙁 etwas kühl, 😊 passt, 😐 etwas warm,
+🥵 zu warm, über die Smileys, Plus und Minus oder die Aktion `thermgenie.feel`. ThermGenie merkt sich jede Antwort mit
+Tageszeit, Wochentag, Außentemperatur und Profil und lernt daraus, was wann angenehm ist, etwa morgens wärmer als
+abends. Was heute gesagt wurde, wirkt sofort und klingt über einige Stunden ab. Ohne Rückmeldung kehrt das Gelernte
+langsam zum Profilwert zurück. Die Profile Komfort, Eco und so weiter bleiben und lernen jeweils mit.
+
+Nach einer Änderung fragt ThermGenie per Push mit fünf Knöpfen nach, sobald der Raum etwa eine Stunde dort ist, bis
+sich die Antworten einpendeln. Statt Zahlen zeigt der Sensor *Tendenz*, ob der Raum wärmer wird, hält oder kühler wird.
+Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
+Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung nur feiner.
+
 ## 5. Automatiken im Alltag
 
 Jede Automatik hat einen Schalter *Automatik: …* auf der Geräteseite und einen Eintrag in den Details. Der Dienst

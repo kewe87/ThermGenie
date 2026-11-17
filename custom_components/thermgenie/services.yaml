@@ -26,3 +26,32 @@ set_routine:
       required: true
       selector:
         boolean:
+
+feel:
+  target:
+    entity:
+      integration: thermgenie
+      domain: climate
+  fields:
+    feeling:
+      required: true
+      selector:
+        select:
+          translation_key: feeling
+          options:
+            - cold
+            - cool
+            - good
+            - warm
+            - hot
+
+set_wellbeing:
+  target:
+    entity:
+      integration: thermgenie
+      domain: climate
+  fields:
+    enabled:
+      required: true
+      selector:
+        boolean:

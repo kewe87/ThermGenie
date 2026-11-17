@@ -962,3 +962,57 @@ async def test_valve_control_settings_find_the_valve_of_the_device(hass, radio):
     page = await hass.config_entries.options.async_configure(flow["flow_id"], {"opening_1": OPEN_WZ})
     done = await _page(hass, flow, "save")
     assert done["data"]["valve_control"] == {WZ: OPEN_WZ}
+
+
+async def test_wellbeing_follows_the_feeling_and_hides_nothing_from_the_switch(hass, radio):
+    devices(hass)
+    hass.states.async_set(SENSOR, "21.0")
+    await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.async_block_till_done()
+    state = hass.states.get(ENTITY)
+    assert state.attributes["wellbeing"] is True
+    assert state.attributes["temperature"] == 21.0  # switching on does not jump
+    assert hass.states.get("switch.wohnbereich_thermal_wellbeing").state == "on"
+    await hass.services.async_call("thermgenie", "feel", {"entity_id": ENTITY, "feeling": "cold"}, blocking=True)
+    await hass.async_block_till_done()
+    state = hass.states.get(ENTITY)
+    assert state.attributes["temperature"] == 22.0
+    assert state.attributes["tendency"] == "warming"
+    assert hass.states.get("sensor.wohnbereich_tendency").state == "warming"
+    assert hass.states.get("sensor.wohnbereich_feeling").state == "cold"
+    # Back to the thermostat: the setpoint starts where Thermal Wellbeing held the room
+    await hass.services.async_call("switch", "turn_off", {"entity_id": "switch.wohnbereich_thermal_wellbeing"}, blocking=True)
+    await hass.async_block_till_done()
+    state = hass.states.get(ENTITY)
+    assert state.attributes["wellbeing"] is False
+    assert state.attributes["temperature"] == 22.0
+
+
+async def test_wellbeing_asks_by_push_and_takes_the_answer(hass, radio):
+    devices(hass)
+    pushes = []
+
+    async def _push(call: ServiceCall):
+        pushes.append(call.data)
+
+    hass.services.async_register("notify", "phone", _push)
+    entry = await setup(hass, notify_service="notify.phone")
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.services.async_call("thermgenie", "feel", {"entity_id": ENTITY, "feeling": "cool"}, blocking=True)
+    await hass.async_block_till_done()
+    hass.states.async_set(SENSOR, "21.5")
+    climate = entry.runtime_data.climate
+    start = dt_util.utcnow()
+    for minutes in (10, 80, 150):
+        with patch("homeassistant.util.dt.utcnow", return_value=start + timedelta(minutes=minutes)):
+            await climate._async_ask_feeling()
+    assert len(pushes) == 1
+    actions = pushes[0]["data"]["actions"]
+    assert len(actions) == 5
+    assert "21" not in pushes[0]["message"]  # never a number
+    hass.bus.async_fire("mobile_app_notification_action", {"action": actions[0]["action"]})
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.wohnbereich_feeling").state == "cold"

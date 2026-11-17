@@ -64,6 +64,21 @@ own. With an open window, heating off or a warm day the valve closes. Radiators 
 mode, and both kinds can be mixed in one room. It is set up under *Settings → Direct drive*, the valve entities are
 found on the device.
 
+### Thermal Wellbeing: by feeling instead of numbers
+
+Every room can be switched between *Thermostat* and *Thermal Wellbeing*, at the bottom of the popup, with the switch
+*Thermal Wellbeing* or the action `thermgenie.set_wellbeing`. In Thermal Wellbeing there are no degrees any more, neither
+on the card nor in the popup. You only say how it feels: 🥶 cold, 🙁 a bit cool, 😊 just right, 😐 a bit warm,
+🥵 too warm, with the faces, plus and minus or the action `thermgenie.feel`. ThermGenie keeps every answer with the time
+of day, weekday, outdoor temperature and preset and learns what feels right when, for example warmer in the morning
+than in the evening. What was said today counts at once and fades out over a few hours. Without answers the learned
+difference slowly goes back to the preset. The presets comfort, eco and so on stay and each learns along.
+
+After a change ThermGenie asks by push with five buttons once the room has been there for about an hour, until the
+answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler. In
+the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
+works with any kind of radiator thermostat, with direct drive just finer.
+
 ### Optimize regulation
 
 The controller values can be set by hand or adjusted automatically. The *Optimize regulation* selection has three levels:

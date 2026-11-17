@@ -267,6 +267,21 @@ found on the device.
 the model predicts, `curve` the opening needed per outdoor temperature at the current target. *Reset learning* also
 resets the room model.
 
+### Thermal Wellbeing: by feeling instead of numbers
+
+Every room can be switched between *Thermostat* and *Thermal Wellbeing*, at the bottom of the popup, with the switch
+*Thermal Wellbeing* or the action `thermgenie.set_wellbeing`. In Thermal Wellbeing there are no degrees any more, neither
+on the card nor in the popup. You only say how it feels: 🥶 cold, 🙁 a bit cool, 😊 just right, 😐 a bit warm,
+🥵 too warm, with the faces, plus and minus or the action `thermgenie.feel`. ThermGenie keeps every answer with the time
+of day, weekday, outdoor temperature and preset and learns what feels right when, for example warmer in the morning
+than in the evening. What was said today counts at once and fades out over a few hours. Without answers the learned
+difference slowly goes back to the preset. The presets comfort, eco and so on stay and each learns along.
+
+After a change ThermGenie asks by push with five buttons once the room has been there for about an hour, until the
+answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler. In
+the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
+works with any kind of radiator thermostat, with direct drive just finer.
+
 ## 5. Everyday routines
 
 Each routine has a switch *Routine: …* on the device page and an entry in the details. The service `thermgenie.set_routine` switches

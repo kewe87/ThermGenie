@@ -4,6 +4,13 @@ from homeassistant.core import HomeAssistant
 
 _TEXTS: dict[str, tuple[str, str]] = {
     # key: German, English
+    "feel_ask_title": ("{name}: Wie fühlt es sich an?", "{name}: how does it feel?"),
+    "feel_ask_body": ("Ich habe nachgeregelt. Wie ist es jetzt?", "I adjusted the room. How is it now?"),
+    "feel_cold": ("🥶 kalt", "🥶 cold"),
+    "feel_cool": ("🙁 etwas kühl", "🙁 a bit cool"),
+    "feel_good": ("😊 passt", "😊 just right"),
+    "feel_warm": ("😐 etwas warm", "😐 a bit warm"),
+    "feel_hot": ("🥵 zu warm", "🥵 too warm"),
     "valve_watch_title": ("{name}: Ventil schließt nicht", "{name}: valve does not close"),
     "valve_watch_body": (
         "{device} sollte zu sein, das Ventil steht seit {minutes} Minuten noch auf {valve} %.",

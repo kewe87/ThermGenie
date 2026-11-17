@@ -540,6 +540,15 @@
         "observe": "Nur beobachten",
         "automatic": "Automatisch"
       }
+    },
+    "feeling": {
+      "options": {
+        "cold": "Kalt",
+        "cool": "Etwas kühl",
+        "good": "Passt",
+        "warm": "Etwas warm",
+        "hot": "Zu warm"
+      }
     }
   },
   "services": {
@@ -558,6 +567,26 @@
         "enabled": {
           "name": "Aktiv",
           "description": "Ein oder aus."
+        }
+      }
+    },
+    "feel": {
+      "name": "Sagen, wie es sich anfühlt",
+      "description": "Thermal Wellbeing lernt daraus, was zu dieser Tageszeit und bei diesem Wetter angenehm ist.",
+      "fields": {
+        "feeling": {
+          "name": "Gefühl",
+          "description": "Wie es sich im Raum anfühlt."
+        }
+      }
+    },
+    "set_wellbeing": {
+      "name": "Thermal Wellbeing umschalten",
+      "description": "Thermal Wellbeing richtet sich nach dem Gefühl statt nach einem Sollwert.",
+      "fields": {
+        "enabled": {
+          "name": "An",
+          "description": "An für Thermal Wellbeing, aus für das Thermostat."
         }
       }
     }
@@ -641,6 +670,24 @@
       },
       "valve_opening": {
         "name": "Ventilöffnung"
+      },
+      "tendency": {
+        "name": "Tendenz",
+        "state": {
+          "warming": "Wird wärmer",
+          "holding": "Hält",
+          "cooling": "Wird kühler"
+        }
+      },
+      "feeling": {
+        "name": "Gefühl",
+        "state": {
+          "cold": "Kalt",
+          "cool": "Etwas kühl",
+          "good": "Passt",
+          "warm": "Etwas warm",
+          "hot": "Zu warm"
+        }
       }
     },
     "number": {
@@ -837,6 +884,9 @@
       },
       "hold_devices": {
         "name": "Gerät gegen Verstellen halten"
+      },
+      "wellbeing": {
+        "name": "Thermal Wellbeing"
       }
     },
     "time": {

@@ -31,8 +31,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .comfort import comfort, dew_point, humidex
+from .feel import FEELINGS, Moment, tendency
 from .const import (
     DOMAIN,
+    ASK_ACTION,
     COMMAND_TIMEOUT_SEC,
     HOLD_WAIT_SEC,
     CONF_TUNING,
@@ -149,6 +151,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service("reset_learning", None, "async_reset_learning")
     platform.async_register_entity_service("set_routine", {vol.Required("routine"): vol.In(ROUTINE_NAMES), vol.Required("enabled"): bool}, "async_set_routine")
+    platform.async_register_entity_service("feel", {vol.Required("feeling"): vol.In(FEELINGS)}, "async_feel")
+    platform.async_register_entity_service("set_wellbeing", {vol.Required("enabled"): bool}, "async_set_wellbeing")
 
 
 def _as_float(state: Any) -> float | None:
@@ -169,7 +173,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     _attr_name = None
     _attr_translation_key = "thermgenie"
     # Only the card needs these, the history stays small without them
-    _unrecorded_attributes = frozenset({"devices", "profiles", "presets", "routines", "routines_off", "learned_factors", "lock_frost_off"})
+    _unrecorded_attributes = frozenset({"devices", "profiles", "presets", "routines", "routines_off", "learned_factors", "lock_frost_off", "feel"})
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 5.0
@@ -217,6 +221,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.valves = ValveWatch(self)
         self._hold_timer = None
         self._phase = PhaseTracker()
+        self.wellbeing = False  # Thermal Wellbeing: the target follows how people feel
+        self._reached_since: float | None = None
 
     def _heat_source(self) -> str:
         """Return what heats. An air conditioner that cannot heat leaves it to the radiators."""
@@ -435,6 +441,9 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             attributes["learned_factors"] = self.runtime.learner.factors
         if (valves := self.valve_status()) is not None:
             attributes["valve_control"] = valves
+        attributes["wellbeing"] = self.wellbeing
+        attributes["tendency"] = self.tendency
+        attributes["feel"] = self.runtime.feel.status(self._moment())
         return attributes
 
     # Life cycle
@@ -458,6 +467,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.async_on_remove(self._cancel_hold_timer)
         if valves := list(self.conf.get(CONF_VALVES, {}).values()):
             self.async_on_remove(async_track_state_change_event(self.hass, valves, self._on_valve))
+        self.async_on_remove(self.hass.bus.async_listen("mobile_app_notification_action", self._on_push_answer))
         self.routines.start()
         self.lock.start()
         self.hass.async_create_task(self._async_first_run())
@@ -477,7 +487,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             if name in self._profiles and saved.get("target") is not None:
                 preset = saved.get("preset", PRESET_NONE)
                 # A preset follows its value in the settings, that may have changed
-                self._profiles[name] = {"target": self.conf.get(f"{name}_{preset}", saved["target"]), "preset": preset}
+                target = self.conf.get(f"{name}_{preset}", saved["target"])
+                self._profiles[name] = {"target": target, "preset": preset, "base": saved.get("base", target)}
         if last.attributes.get("profile") in self._roles:
             self._resting_profile = last.attributes["profile"]
         self._outdoor_blocked = last.attributes.get("blocked_by") == "outdoor"
@@ -485,6 +496,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.routines.off = set(last.attributes.get("routines_off") or [])
         self.routines.air_running = bool((last.attributes.get("routines") or {}).get("air"))
         self.lock.frost_active = bool(last.attributes.get("frost_active"))
+        self.wellbeing = bool(last.attributes.get("wellbeing"))
         for device in self._devices:
             saved = (last.attributes.get("devices") or {}).get(device.entity_id) or {}
             device.regulator.integral = saved.get("integral", 0.0)
@@ -723,6 +735,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         await self.valves.async_check()
         self._track_phase()
         self._track_valves()
+        await self._async_ask_feeling()
 
     def _flow(self) -> float | None:
         entity = self.conf.get(CONF_FLOW)
@@ -778,6 +791,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.runtime.learner.reset()
         self.runtime.optimizer.reset()
         self.runtime.model.reset()
+        self.runtime.feel.reset()
         self._planner.reset()
         self._tune_devices()
         self._save_learned()
@@ -819,6 +833,16 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         mode = kwargs.get(ATTR_HVAC_MODE)
         self._refuse_when_locked("heat" if mode == HVACMode.HEAT else "cool" if mode == HVACMode.COOL else self.profile)
+        if (target := kwargs.get(ATTR_TEMPERATURE)) is not None and self._mode != HVACMode.OFF:
+            m = self._moment()
+            if self.wellbeing:
+                # A number said anyway counts like a feeling that leads there
+                self.runtime.feel.told(float(target), m)
+                self._save_learned()
+                await self._async_regulate(force=True)
+                return
+            self.runtime.feel.hand_set(float(target), m)
+            self._save_learned()
         await self.async_apply_target(**kwargs)
 
     async def async_apply_target(self, **kwargs: Any) -> None:
@@ -826,7 +850,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if (mode := kwargs.get(ATTR_HVAC_MODE)) is not None and mode in self.hvac_modes:
             self._set_mode(HVACMode(mode))
         if (target := kwargs.get(ATTR_TEMPERATURE)) is not None:
-            self._profiles[self.profile] = {"target": float(target), "preset": PRESET_NONE}
+            self._profiles[self.profile] = {"target": float(target), "preset": PRESET_NONE, "base": float(target)}
             self.routines.preset_changed(PRESET_NONE)
         if not await self.lock.check():
             await self._async_regulate(force=True)
@@ -835,13 +859,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         profile = self._profiles[self.profile]
         profile["preset"] = preset_mode
         if preset_mode != PRESET_NONE:
-            profile["target"] = self.conf[f"{self.profile}_{preset_mode}"]
+            profile["target"] = profile["base"] = self.conf[f"{self.profile}_{preset_mode}"]
         self.routines.preset_changed(preset_mode)
         await self._async_regulate(force=True)
 
     async def async_cool_target(self, target: float, preset: str = PRESET_NONE) -> None:
         """Change the cooling setpoint only, whatever the mode. Used by the night cascade."""
-        self._profiles["cool"] = {"target": float(target), "preset": preset}
+        self._profiles["cool"] = {"target": float(target), "preset": preset, "base": float(target)}
         await self._async_regulate(force=True)
 
     async def async_force_off(self) -> None:
@@ -855,13 +879,103 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         """Bring the devices in line right away."""
         await self._async_regulate(force=True)
 
+    # Thermal Wellbeing
+
+    def _base(self) -> float:
+        """Return what the running preset stands for, the learned feeling sits on top."""
+        profile = self._profiles[self.profile]
+        if profile["preset"] != PRESET_NONE:
+            return self.conf[f"{self.profile}_{profile['preset']}"]
+        return profile.get("base", profile["target"])
+
+    def _moment(self) -> Moment:
+        local = dt_util.now()
+        preset = self._profiles[self.profile]["preset"]
+        return Moment(local.timestamp(), local.hour + local.minute / 60, local.weekday() >= 5, self._outdoor(), f"{self.profile}_{preset}", self._base())
+
+    def _apply_feel(self) -> None:
+        """In Thermal Wellbeing the target is what feels right now."""
+        if not self.wellbeing or self._mode == HVACMode.OFF:
+            return
+        self._profiles[self.profile]["target"] = self.runtime.feel.target(self._moment())
+
+    @property
+    def tendency(self) -> str:
+        """Return whether the room is getting warmer, cooler or holds, the only thing shown instead of numbers."""
+        active = self._mode != HVACMode.OFF and self._blocked_by() is None
+        return tendency(self._reference(self.profile), self.target_temperature, active)
+
+    async def async_feel(self, feeling: str) -> None:
+        """Take how it feels in the room. In the thermostat mode it moves the setpoint."""
+        self._refuse_when_locked(self.profile)
+        m = self._moment()
+        target = self.runtime.feel.feel(feeling, self._reference(self.profile), self.active_target, m)
+        if not self.wellbeing:
+            self._profiles[self.profile] = {"target": target, "preset": PRESET_NONE, "base": target}
+            self.routines.preset_changed(PRESET_NONE)
+        self._reached_since = None
+        self._save_learned()
+        await self._async_regulate(force=True)
+
+    async def async_set_wellbeing(self, enabled: bool) -> None:
+        """Switch between Thermal Wellbeing and the thermostat. The room does not jump either way."""
+        if enabled == self.wellbeing:
+            return
+        profile = self._profiles[self.profile]
+        if enabled and profile["preset"] == PRESET_NONE:
+            profile["base"] = profile["target"]
+        if not enabled:
+            # The setpoint starts where Thermal Wellbeing held the room
+            self._profiles[self.profile] = {"target": profile["target"], "preset": PRESET_NONE, "base": profile["target"]}
+            self.routines.preset_changed(PRESET_NONE)
+        self.wellbeing = enabled
+        await self._async_regulate(force=True)
+
+    async def _async_ask_feeling(self) -> None:
+        """Ask how it feels once the room got where the last answer sent it."""
+        feel = self.runtime.feel
+        if not self.wellbeing or self._mode == HVACMode.OFF or feel.ask_at is None:
+            self._reached_since = None
+            return
+        now = dt_util.utcnow().timestamp()
+        if self.tendency == "holding":
+            self._reached_since = self._reached_since or now
+        else:
+            self._reached_since = None
+        if not feel.due(now, self._reached_since):
+            return
+        feel.asked()
+        self._save_learned()
+        self.hass.bus.async_fire(f"{DOMAIN}_ask", {"entity_id": self.entity_id, "room": self.room})
+        await self.async_ask(say(self.hass, "feel_ask_title", name=self.room), say(self.hass, "feel_ask_body"))
+
+    async def _on_push_answer(self, event: Event) -> None:
+        """A button of the question was tapped."""
+        action = str(event.data.get("action", ""))
+        if not action.startswith(ASK_ACTION) or not action.endswith(f"_{self._entry.entry_id}"):
+            return
+        feeling = action[len(ASK_ACTION):-len(self._entry.entry_id) - 1]
+        if feeling in FEELINGS:
+            await self.async_feel(feeling)
+
+    async def async_ask(self, title: str, message: str) -> None:
+        """Push the question with one button per feeling, only to someone at home without a focus mode."""
+        presence = self.conf.get(CONF_PRESENCE)
+        quiet = self.conf.get(CONF_QUIET)
+        if presence and not self.hass.states.is_state(presence, "home"):
+            return
+        if quiet and self.hass.states.is_state(quiet, STATE_ON):
+            return
+        actions = [{"action": f"{ASK_ACTION}{feeling}_{self._entry.entry_id}", "title": say(self.hass, f"feel_{feeling}")} for feeling in FEELINGS]
+        await self.async_notify(title, message, extra={"actions": actions})
+
     # Messages
 
     async def async_log(self, message: str, name: str | None = None) -> None:
         if self.hass.services.has_service("logbook", "log"):
             await self.hass.services.async_call("logbook", "log", {"name": name or self.room, "message": message}, blocking=False)
 
-    async def async_notify(self, title: str, message: str, level: str | None = None) -> None:
+    async def async_notify(self, title: str, message: str, level: str | None = None, extra: dict[str, Any] | None = None) -> None:
         """Send a push. The critical level gets through silent modes."""
         service = self.conf.get(CONF_NOTIFY)
         if not service or "." not in service:
@@ -871,6 +985,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             data["data"] = {"push": {"interruption-level": "critical", "sound": {"name": "default", "critical": 1, "volume": 1.0}}}
         elif level:
             data["data"] = {"push": {"interruption-level": level}}
+        if extra:
+            data["data"] = {**data.get("data", {}), **extra}
         domain, name = service.split(".", 1)
         try:
             await self.hass.services.async_call(domain, name, data, blocking=False)
@@ -913,6 +1029,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         async with self._lock:
             now = dt_util.utcnow()
             self._update_outdoor(now)
+            self._apply_feel()
             factor = self.runtime.learner.factor(self._flow()) if self.conf[CONF_LEARN] else 1.0
             for device in self._devices:
                 state = self._device_state(device)

@@ -38,6 +38,9 @@ class Radio:
     def setpoints(self, entity):
         return [c[2]["temperature"] for c in self.calls if c[0] == entity and c[1] == "set_temperature"]
 
+    def numbers(self, entity):
+        return [c[2]["value"] for c in self.calls if c[0] == entity and c[1] == "set_value"]
+
     def modes(self, entity):
         return [c[2]["hvac_mode"] for c in self.calls if c[0] == entity and c[1] == "set_hvac_mode"]
 
@@ -55,7 +58,13 @@ async def radio(hass: HomeAssistant):
             old = hass.states.get(device.entity_id)
             hass.states.async_set(device.entity_id, data["hvac_mode"], old.attributes)
 
-    with patch.object(ThermGenieClimate, "_async_call", _call):
+    async def _number(self, entity, value):
+        if entity in rec.fail:
+            raise HomeAssistantError("radio dead")
+        rec.calls.append((entity, "set_value", {"value": value}))
+        hass.states.async_set(entity, str(value))
+
+    with patch.object(ThermGenieClimate, "_async_call", _call), patch.object(ThermGenieClimate, "_async_number", _number):
         yield rec
 
 
@@ -400,7 +409,7 @@ async def test_settings_menu_reaches_every_page_and_saves_at_the_end(hass, radio
     entry = await setup(hass)
     flow = await hass.config_entries.options.async_init(entry.entry_id)
     assert flow["type"] is FlowResultType.MENU
-    assert flow["menu_options"] == ["devices", "outdoor", "presets", "regulation", "routines", "air", "lock", "valves", "summer", "save"]
+    assert flow["menu_options"] == ["devices", "outdoor", "presets", "regulation", "routines", "air", "wellbeing", "lock", "valves", "summer", "save"]
 
     page = await _page(hass, flow, "regulation")
     page = await hass.config_entries.options.async_configure(flow["flow_id"], {"heating": {"kp": 0.4}, "learning": {"learn": True}, "cooling": {"reference_cool": "humidex"}, "timing": {}})
@@ -886,3 +895,70 @@ async def test_a_lower_target_keeps_a_negative_sum(hass, radio):
     device.regulator.integral = -8.0
     await service(hass, "set_temperature", temperature=21.0)
     assert device.regulator.integral < 0
+
+
+OPEN_WZ = "number.wz_valve_opening_degree"
+CLOSE_WZ = "number.wz_valve_closing_degree"
+
+
+def valves(hass):
+    hass.states.async_set(OPEN_WZ, "100")
+    hass.states.async_set(CLOSE_WZ, "100")
+
+
+async def test_wellbeing_drives_the_valve_and_keeps_the_setpoint_as_fallback(hass, radio):
+    devices(hass)
+    valves(hass)
+    hass.states.async_set(SENSOR, "19.0")
+    await setup(hass, wellbeing_valves={WZ: OPEN_WZ})
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    opening = radio.numbers(OPEN_WZ)[-1]
+    assert opening > 0
+    assert radio.numbers(CLOSE_WZ)[-1] == 100 - opening
+    assert radio.setpoints(WZ)[-1] == 20.5  # the plain target with its offset, no regulator shift
+    assert radio.setpoints(KU)[-1] > 21.0  # the other radiator keeps the setpoint mode
+    status = hass.states.get(ENTITY).attributes["wellbeing"]
+    assert (status["valve"], status["control"]) == (opening, "pi")
+    assert hass.states.get("sensor.wohnbereich_thermal_wellbeing_valve").state == str(opening)
+
+
+async def test_wellbeing_closes_the_valve_when_off_or_the_window_opens(hass, radio):
+    devices(hass)
+    valves(hass)
+    hass.states.async_set(SENSOR, "19.0")
+    await setup(hass, wellbeing_valves={WZ: OPEN_WZ})
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await service(hass, "set_hvac_mode", hvac_mode="off")
+    assert (radio.numbers(OPEN_WZ)[-1], radio.numbers(CLOSE_WZ)[-1]) == (0.0, 100.0)
+
+
+async def test_wellbeing_hands_the_valve_back_when_the_sensor_is_gone(hass, radio):
+    devices(hass)
+    valves(hass)
+    hass.states.async_set(SENSOR, "19.0")
+    await setup(hass, wellbeing_valves={WZ: OPEN_WZ})
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    hass.states.async_set(SENSOR, "unavailable")
+    await service(hass, "set_temperature", temperature=21.5)
+    assert (radio.numbers(OPEN_WZ)[-1], radio.numbers(CLOSE_WZ)[-1]) == (100.0, 100.0)
+    assert radio.setpoints(WZ)[-1] == 21.0
+
+
+async def test_wellbeing_settings_find_the_valve_of_the_device(hass, radio):
+    registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    config = MockConfigEntry(domain="mqtt")
+    config.add_to_hass(hass)
+    trv = device_registry.async_get_or_create(config_entry_id=config.entry_id, identifiers={("mqtt", "trv")})
+    registry.async_get_or_create("climate", "mqtt", "wz", suggested_object_id="wz", device_id=trv.id)
+    registry.async_get_or_create("number", "mqtt", "wz_open", suggested_object_id="wz_valve_opening_degree", device_id=trv.id)
+    devices(hass)
+    valves(hass)
+    entry = await setup(hass)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    page = await _page(hass, flow, "wellbeing")
+    assert page["step_id"] == "wellbeing"
+    assert OPEN_WZ in page["description_placeholders"]["found"]
+    page = await hass.config_entries.options.async_configure(flow["flow_id"], {"opening_1": OPEN_WZ})
+    done = await _page(hass, flow, "save")
+    assert done["data"]["wellbeing_valves"] == {WZ: OPEN_WZ}

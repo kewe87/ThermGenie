@@ -4,12 +4,12 @@ from datetime import datetime
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_HUMIDITY, CONF_LEARN, CONF_SLEEP, CONF_TUNING, CONF_WAKE, DEFAULTS, TUNING_MANUAL
+from .const import CONF_HUMIDITY, CONF_WELLBEING, CONF_LEARN, CONF_SLEEP, CONF_TUNING, CONF_WAKE, DEFAULTS, TUNING_MANUAL
 from .entity import ThermostatEntity
 from .optimizer import PHASES_PER_STEP
 from .settings import heating
@@ -28,6 +28,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities += [OvershootSensor(entry, "overshoot"), BrakeFactorSensor(entry, "brake_factor")]
     if heating({**DEFAULTS, **conf}):
         entities += [TuningSensor(entry, "tuning_state"), TunedGainSensor(entry, "tuned_kp"), TunedGainSensor(entry, "tuned_ki")]
+    if conf.get(CONF_WELLBEING):
+        entities.append(WellbeingSensor(entry, "wellbeing_valve"))
     entry.runtime_data.add(async_add_entities, entities)
 
 
@@ -167,3 +169,20 @@ class TunedGainSensor(ThermostatEntity, SensorEntity):
     @property
     def native_value(self) -> float:
         return self.climate.tuned_gains[0 if self.translation_key == "tuned_kp" else 1]
+
+
+class WellbeingSensor(ThermostatEntity, SensorEntity):
+    """The valve opening Thermal Wellbeing chose, with what it learned about the room."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _unrecorded_attributes = frozenset({"curve"})
+
+    @property
+    def native_value(self) -> float | None:
+        status = self.climate.wellbeing_status()
+        return status["valve"] if status else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return self.climate.wellbeing_status() or {}

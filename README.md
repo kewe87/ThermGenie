@@ -49,6 +49,21 @@ an ein Gerät, wenn sich der Wert nennenswert ändert. Das schont den Funkkanal 
 Jedes Thermostat arbeitet unabhängig in seiner eigenen Betriebsart. Ein automatischer Wechsel zwischen Heizen und
 Kühlen findet nicht statt.
 
+### Thermal Wellbeing: Ventile direkt steuern
+
+Heizkörperthermostate, deren Ventilöffnung sich setzen lässt (zum Beispiel Sonoff TRVZB über Zigbee2MQTT), kann
+ThermGenie direkt steuern. Statt eines verschobenen Sollwerts erhält das Ventil eine Öffnung in Prozent. Dafür lernt
+ThermGenie laufend ein kleines Wärmemodell des Raums: wie stark die Heizkörper bei welcher Vorlauftemperatur heizen,
+wie schnell der Raum nach außen Wärme verliert und wie träge die Heizkörper sind. Mit diesem Modell plant es die
+Öffnung zwei Stunden voraus und schließt rechtzeitig, bevor der Raum überschwingt. Bis das Modell den Raum kennt,
+meist nach zwei bis drei Tagen, regelt ein einfacher Regler die Ventile. Das Gelernte bleibt über Neustarts erhalten
+und erscheint als Sensor *Thermal Wellbeing Ventil*, samt Kurve der nötigen Öffnung je Außentemperatur.
+
+Das Thermostat behält den Sollwert als Rückfall. Fällt der Raumfühler aus, bekommt es sein Ventil zurück und regelt
+selbst. Bei offenem Fenster, ausgeschalteter Heizung oder warmem Tag schließt das Ventil. Heizkörper ohne
+Ventilsteuerung bleiben im Sollwert-Betrieb, beide Arten lassen sich in einem Raum mischen. Eingerichtet wird es unter
+*Einstellungen → Thermal Wellbeing*, die Ventil-Entitäten werden am Gerät erkannt.
+
 ### Regelung optimieren
 
 Die Reglerwerte lassen sich von Hand festlegen oder automatisch anpassen. Die Auswahl *Regelung optimieren* kennt drei

@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResu
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import selector
+from homeassistant.helpers import entity_registry as er, selector
 import voluptuous as vol
 
 from .ai import ENTITY_FIELDS, async_suggest
@@ -62,6 +62,8 @@ from .const import (
     CONF_VALVES,
     CONF_VALVE_LIMIT,
     CONF_VALVE_WAIT,
+    CONF_WELLBEING,
+    OPENING_SUFFIX,
     CONF_LOCK_WAIT,
     CONF_NAME,
     CONF_NOTIFY,
@@ -369,6 +371,39 @@ class _Steps:
         names = "\n".join(f"- **{i}:** {self._device_name(e)}" for i, e in enumerate(heaters, 1))
         return self.async_show_form(step_id="valves", data_schema=vol.Schema(schema), description_placeholders={"devices": names})
 
+    async def async_step_wellbeing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Thermal Wellbeing: radiators whose valve opening ThermGenie sets itself, all others keep their setpoint."""
+        heaters = self.values.get(CONF_HEATERS, [])
+        if user_input is not None:
+            self.values[CONF_WELLBEING] = {e: user_input[f"opening_{i}"] for i, e in enumerate(heaters, 1) if user_input.get(f"opening_{i}")}
+            return await self._after("wellbeing")
+        known = self.values.get(CONF_WELLBEING, {})
+        schema: dict[Any, Any] = {}
+        found = []
+        for i, e in enumerate(heaters, 1):
+            suggestion = self._opening_of(e)
+            if suggestion:
+                found.append(f"- **{i}:** `{suggestion}`")
+            # Nothing chosen yet: offer what the devices have
+            schema[vol.Optional(f"opening_{i}", description={"suggested_value": known.get(e) if known else suggestion})] = _entity(["number"])
+        names = "\n".join(f"- **{i}:** {self._device_name(e)}" for i, e in enumerate(heaters, 1))
+        return self.async_show_form(
+            step_id="wellbeing",
+            data_schema=vol.Schema(schema),
+            description_placeholders={"devices": names, "found": "\n".join(found) or "-"},
+        )
+
+    def _opening_of(self, heater: str) -> str | None:
+        """Return the valve opening number of the device a radiator thermostat belongs to."""
+        registry = er.async_get(self.hass)
+        entry = registry.async_get(heater)
+        if entry is None or entry.device_id is None:
+            return None
+        for other in er.async_entries_for_device(registry, entry.device_id):
+            if other.domain == "number" and other.entity_id.endswith(OPENING_SUFFIX):
+                return other.entity_id
+        return None
+
     async def async_step_lock(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The heating lock."""
         errors: dict[str, str] = {}
@@ -491,7 +526,7 @@ class ThermGenieOptionsFlow(_Steps, OptionsFlow):
         pages = ["ai"] if self.hass.states.async_entity_ids("ai_task") else []
         pages += ["devices", "outdoor", "presets", "regulation", "routines", "air"]
         if self.values.get(CONF_HEATERS):
-            pages += ["lock", "valves"]
+            pages += ["wellbeing", "lock", "valves"]
         if self.values.get(CONF_COOLER):
             pages.append("summer")
         return self.async_show_menu(step_id="init", menu_options=[*pages, "save"])

@@ -44,6 +44,9 @@ from .const import (
     HEAT_RADIATORS,
     CONF_HOLD_DEVICES,
     CONF_VALVES,
+    CONF_WELLBEING,
+    CLOSING_SUFFIX,
+    OPENING_SUFFIX,
     CONF_COOLER,
     CLOSE_ABOVE,
     CLOSE_RELEASE,
@@ -103,6 +106,7 @@ from .messages import say
 from .regulator import Regulator
 from .routines import Routines
 from .valves import ValveWatch
+from .wellbeing import ValvePlanner
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -130,6 +134,13 @@ class Device:
     sent_at: datetime | None = None
     last_target: float | None = None
     shut: bool = False  # the room is well past the target, the radiator sits on its lowest setpoint
+    opening: str | None = None  # Thermal Wellbeing: number entity of the valve opening, None in setpoint mode
+    valve: float | None = None  # Thermal Wellbeing: wanted opening, None hands the valve back to the device
+    regulated: bool = False  # Thermal Wellbeing: the room plan decides the opening
+
+    @property
+    def closing(self) -> str | None:
+        return self.opening.replace(OPENING_SUFFIX, CLOSING_SUFFIX) if self.opening else None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -182,8 +193,12 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self._devices = [Device(e, "heat", 0.0, 0.0, Regulator(0, 0, 0, 0, 0)) for e in self.conf.get(CONF_HEATERS, [])]
         if self.conf.get(CONF_COOLER):
             self._devices.append(Device(self.conf[CONF_COOLER], "cool", 0.0, 0.0, Regulator(0, 0, 0, 0, 0)))
+        for device in self._devices:
+            if device.role == "heat":
+                device.opening = self.conf.get(CONF_WELLBEING, {}).get(device.entity_id)
         self._tune_devices()
         self._roles = {d.role for d in self._devices}
+        self._planner = ValvePlanner(self.runtime.model)
 
         self._mode = HVACMode.OFF
         self._resting_profile = "heat" if "heat" in self._roles else "cool"
@@ -418,6 +433,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             attributes["lock_frost_off"] = self.conf[CONF_LOCK_FROST_OFF]
         if self.conf[CONF_LEARN]:
             attributes["learned_factors"] = self.runtime.learner.factors
+        if (wellbeing := self.wellbeing_status()) is not None:
+            attributes["wellbeing"] = wellbeing
         return attributes
 
     # Life cycle
@@ -705,6 +722,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         await self.lock.check()
         await self.valves.async_check()
         self._track_phase()
+        self._track_wellbeing()
 
     def _flow(self) -> float | None:
         entity = self.conf.get(CONF_FLOW)
@@ -759,6 +777,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         """Forget the learned factors and go back to the values the user set."""
         self.runtime.learner.reset()
         self.runtime.optimizer.reset()
+        self.runtime.model.reset()
+        self._planner.reset()
         self._tune_devices()
         self._save_learned()
         self.async_write_ha_state()
@@ -904,19 +924,108 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 wanted = self._wanted(device, state, now, force)
                 await self._async_send(device, state, wanted)
                 await self._async_fan(device, state, wanted)
+            await self._async_wellbeing(now, force)
         self.async_write_ha_state()
+
+    # Thermal Wellbeing
+
+    @property
+    def _wellbeing_devices(self) -> list[Device]:
+        return [d for d in self._devices if d.opening]
+
+    def _outdoor(self) -> float | None:
+        entity = self.conf.get(CONF_OUTDOOR)
+        return _as_float(self.hass.states.get(entity)) if entity else None
+
+    async def _async_wellbeing(self, now: datetime, force: bool) -> None:
+        """Plan the opening of the room and hand it to every valve driven by Thermal Wellbeing."""
+        devices = self._wellbeing_devices
+        if not devices:
+            return
+        planner = self._planner
+        regulated = [d for d in devices if d.regulated]
+        room = self._reference("heat")
+        if regulated and room is not None:
+            wanted = planner.plan(now.timestamp(), room, self.active_target, self._outdoor_or_default(), self._flow())
+            planner.command(now.timestamp(), wanted)
+        else:
+            planner.reset()
+            # What the valves got instead counts as the last move
+            fixed = {d.valve for d in devices if not d.regulated}
+            planner.last_valve = fixed.pop() if len(fixed) == 1 else None
+        for device in devices:
+            await self._async_valve(device, planner.last_valve if device.regulated else device.valve, force)
+
+    def _outdoor_or_default(self) -> float:
+        outdoor = self._outdoor()
+        return 10.0 if outdoor is None else outdoor
+
+    async def _async_valve(self, device: Device, opening: float | None, force: bool) -> None:
+        """Set the valve to an opening, or hand it back to the device with None.
+
+        The TRV moves to the opening degree while it wants heat and to 100 minus the
+        closing degree while it does not, so with both set the valve stays where we want it.
+        """
+        values = (100.0, 100.0) if opening is None else (opening, 100.0 - opening)
+        for entity, value in zip((device.opening, device.closing), values):
+            state = self.hass.states.get(entity)
+            if state is None or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+                continue  # asleep or gone, the next cycle tries again
+            current = _as_float(state)
+            if not force and current is not None and abs(current - value) < 0.5:
+                continue
+            try:
+                await self._async_number(entity, value)
+            except (HomeAssistantError, TimeoutError) as err:
+                _LOGGER.warning("%s: valve command to %s failed: %s", self.entity_id, entity, err)
+
+    async def _async_number(self, entity: str, value: float) -> None:
+        async with asyncio.timeout(COMMAND_TIMEOUT_SEC):
+            await self.hass.services.async_call("number", "set_value", {ATTR_ENTITY_ID: entity, "value": value}, blocking=True)
+
+    def _track_wellbeing(self) -> None:
+        """Let the room model learn from what the valves did."""
+        devices = self._wellbeing_devices
+        if not devices:
+            return
+        model = self.runtime.model
+        room = self.real_temperature()
+        outdoor = self._outdoor()
+        openings = [self._planner.last_valve if d.regulated else d.valve for d in devices]
+        if room is None or outdoor is None or self._sensor_stale or self._window_open or any(o is None for o in openings):
+            model.interrupt()  # nobody knows what the valves did, or the window spoils the balance
+            return
+        if model.observe(dt_util.utcnow().timestamp(), room, outdoor, sum(openings) / len(openings), self._flow()):
+            self._save_learned()
+
+    def wellbeing_status(self) -> dict[str, Any] | None:
+        """What Thermal Wellbeing does and knows, None without its valves."""
+        devices = self._wellbeing_devices
+        if not devices:
+            return None
+        openings = [self._planner.last_valve if d.regulated else d.valve for d in devices]
+        return {
+            "valve": openings[0] if len(set(openings)) == 1 else None,
+            "control": self._planner.mode if any(d.regulated for d in devices) else "device" if None in openings else "closed",
+            "trim": round(self._planner.trim, 1),
+            "bias": round(self.runtime.model.bias, 3),
+            **self.runtime.model.summary(self.active_target, self._flow()),
+        }
 
     def _wanted(self, device: Device, state, now: datetime, force: bool) -> float | str:
         """Return what the device should do: OFF, a pass-through mode or a setpoint."""
         was_shut, device.shut = device.shut, False  # only the regulation below keeps it
+        device.valve, device.regulated = None, False  # the device decides unless said otherwise below
         if self.lock.frost_active and device.role == "heat":
             return self._fit(self.conf[CONF_LOCK_FROST_OFF], state)
         target = self.active_target + device.offset
         if not self._acts(device) or self._blocked_by() == "outdoor":
             device.last_run = None
+            device.valve = 0.0
             return OFF
         if self._window_open:
             device.last_run = None
+            device.valve = 0.0
             return OFF if device.role == "cool" else self.conf["heat_frost"]
         if self._mode in PASS_THROUGH:
             device.last_run = None
@@ -924,6 +1033,11 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         role = self._mode_role()
         room = self._fresh_reference(role, now)
         if room is None:  # sensor gone: the device regulates on its own sensor
+            return self._fit(target, state)
+        if device.opening:
+            # Thermal Wellbeing: the device keeps the target as a fallback, the valve follows the room plan
+            device.last_run = None
+            device.regulated = True
             return self._fit(target, state)
 
         periods = 1.0

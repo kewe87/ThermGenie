@@ -247,6 +247,26 @@ heating runs on right now. Suggestions and steps are also in the logbook.
 first suggestion. The optimization only covers heating with radiators. Radiator thermostats with their own control react slowly,
 which is why the steps are deliberately small.
 
+### Thermal Wellbeing: driving the valves directly
+
+Radiator thermostats whose valve opening can be set (for example the Sonoff TRVZB via Zigbee2MQTT) can be driven by
+ThermGenie directly. Instead of a shifted setpoint the valve gets an opening in percent. For this ThermGenie keeps
+learning a small heat model of the room: how strongly the radiators heat at which flow temperature, how fast the room
+loses heat to the outside and how slow the radiators are. With it, the opening is planned two hours ahead and the valve
+closes in time before the room overshoots. Until the model knows the room, usually after two to three days, a simple
+regulator drives the valves. What was learned survives restarts and shows up as the sensor *Thermal Wellbeing valve*,
+including a curve of the opening needed per outdoor temperature.
+
+The thermostat keeps the setpoint as a fallback. If the room sensor fails, it gets its valve back and regulates on its
+own. With an open window, heating off or a warm day the valve closes. Radiators without valve control stay in setpoint
+mode, and both kinds can be mixed in one room. It is set up under *Settings → Thermal Wellbeing*, the valve entities are
+found on the device.
+
+**Values of the sensor:** `control` tells who regulates (`pi` learning regulator, `model` the model, `closed` closed,
+`device` the thermostat itself). `heating_power`, `heat_loss` and `delay_min` describe the room, `fit_k_per_h` how well
+the model predicts, `curve` the opening needed per outdoor temperature at the current target. *Reset learning* also
+resets the room model.
+
 ## 5. Everyday routines
 
 Each routine has a switch *Routine: …* on the device page and an entry in the details. The service `thermgenie.set_routine` switches

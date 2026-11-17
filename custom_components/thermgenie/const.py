@@ -80,6 +80,9 @@ CONF_HOLD_DEVICES = "hold_devices"
 CONF_VALVES = "valves"
 CONF_VALVE_LIMIT = "valve_limit"
 CONF_VALVE_WAIT = "valve_wait_min"
+CONF_WELLBEING = "wellbeing_valves"  # radiator -> its valve opening number, Thermal Wellbeing drives these
+OPENING_SUFFIX = "valve_opening_degree"
+CLOSING_SUFFIX = "valve_closing_degree"
 
 CONF_GUARD_SENSOR = "guard_sensor"
 CONF_GUARD_ABOVE = "guard_above"

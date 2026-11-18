@@ -1016,3 +1016,27 @@ async def test_wellbeing_asks_by_push_and_takes_the_answer(hass, radio):
     hass.bus.async_fire("mobile_app_notification_action", {"action": actions[0]["action"]})
     await hass.async_block_till_done()
     assert hass.states.get("sensor.wohnbereich_feeling").state == "cold"
+
+
+async def test_wellbeing_takes_a_turn_of_the_knob_as_an_answer(hass, radio):
+    devices(hass)
+    await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.async_block_till_done()
+    later = dt_util.utcnow() + timedelta(minutes=2)
+    with patch("homeassistant.util.dt.utcnow", return_value=later):
+        old = hass.states.get(WZ)
+        command = hass.states.get(ENTITY).attributes["devices"][WZ]["command"]
+        hass.states.async_set(WZ, "heat", {**old.attributes, "temperature": command})
+        await hass.async_block_till_done()
+        # Turned up by hand, two steps
+        hass.states.async_set(WZ, "heat", {**old.attributes, "temperature": command + 0.5})
+        await hass.async_block_till_done()
+        hass.states.async_set(WZ, "heat", {**old.attributes, "temperature": command + 1.0})
+        await hass.async_block_till_done()
+    assert hass.states.get("sensor.wohnbereich_feeling").state != "cool"  # waits until the turning stops
+    async_fire_time_changed(hass, later + timedelta(seconds=10))
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.wohnbereich_feeling").state == "cool"
+    assert hass.states.get(ENTITY).attributes["temperature"] > 21.0

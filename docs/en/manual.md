@@ -281,6 +281,9 @@ After a change ThermGenie asks by push with five buttons once the room has been 
 answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler.
 The face of the last answer stays until the room got there, then it is neutral again. A second answer within two
 minutes replaces the first, say after a slip of the finger.
+The knob of the thermostat is an answer as well: a little up means a bit cool, a little down a bit warm, turned 1.5
+degrees or more cold or hot. Then ThermGenie turns the knob back to where the room is going. In rooms with a heating
+lock the knob stays locked.
 In the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
 works with any kind of radiator thermostat, with direct drive just finer.
 

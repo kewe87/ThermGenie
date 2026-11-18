@@ -37,6 +37,8 @@ from .const import (
     ASK_ACTION,
     COMMAND_TIMEOUT_SEC,
     HOLD_WAIT_SEC,
+    KNOB_FAR,
+    KNOB_WAIT_SEC,
     CONF_TUNING,
     TUNING_AUTOMATIC,
     TUNING_MANUAL,
@@ -224,6 +226,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.wellbeing = False  # Thermal Wellbeing: the target follows how people feel
         self._reached_since: float | None = None
         self._tendency = "holding"
+        self._knob_timer = None
+        self._knob_turn = 0.0
 
     def _heat_source(self) -> str:
         """Return what heats. An air conditioner that cannot heat leaves it to the radiators."""
@@ -466,6 +470,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.async_on_remove(async_track_time_interval(self.hass, self._on_cycle, timedelta(minutes=self.conf[CONF_PERIOD])))
         self.async_on_remove(self._cancel_window_timer)
         self.async_on_remove(self._cancel_hold_timer)
+        self.async_on_remove(self._cancel_knob_timer)
         if valves := list(self.conf.get(CONF_VALVES, {}).values()):
             self.async_on_remove(async_track_state_change_event(self.hass, valves, self._on_valve))
         self.async_on_remove(self.hass.bus.async_listen("mobile_app_notification_action", self._on_push_answer))
@@ -639,6 +644,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             self.async_write_ha_state()
         elif old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self.hass.async_create_task(self._async_regulate(force=True))
+        elif (turn := self._knob(event.data["entity_id"], old, new)) is not None:
+            self._on_knob(turn)
         elif (self.lock.enabled or self.conf[CONF_HOLD_DEVICES]) and (old.state, old.attributes.get(ATTR_TEMPERATURE)) != (new.state, new.attributes.get(ATTR_TEMPERATURE)):
             self._hold_devices()
         if new is not None and self._device_changed_by_hand(event.data["entity_id"], new):
@@ -697,6 +704,53 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     def _on_hold_timer(self, _now: datetime) -> None:
         self._hold_timer = None
         self._hold_devices()
+
+    def _knob(self, entity_id: str, old, new) -> float | None:
+        """In Thermal Wellbeing a thermostat turned by hand is an answer: return how far it was turned from its command."""
+        if not self.wellbeing or self.lock.enabled or self._mode == HVACMode.OFF:
+            return None
+        if old.attributes.get(ATTR_TEMPERATURE) == new.attributes.get(ATTR_TEMPERATURE) or new.state != old.state:
+            return None
+        for device in self._devices:
+            if device.entity_id != entity_id or device.role != "heat" or isinstance(device.command, str) or device.command is None:
+                continue
+            if device.sent_at is not None and (dt_util.utcnow() - device.sent_at).total_seconds() < HOLD_WAIT_SEC:
+                return None  # still taking our own command
+            temperature = new.attributes.get(ATTR_TEMPERATURE)
+            if temperature is None:
+                return None
+            turn = temperature - device.command
+            return turn if abs(turn) > (new.attributes.get("target_temp_step") or 0.5) / 2 else None
+        return None
+
+    @callback
+    def _on_knob(self, turn: float) -> None:
+        """Wait until the turning stops, a knob moves in steps."""
+        self._knob_turn = turn
+        self._cancel_knob_timer()
+        self._knob_timer = async_call_later(self.hass, KNOB_WAIT_SEC, self._on_knob_timer)
+
+    async def _on_knob_timer(self, _now: datetime) -> None:
+        self._knob_timer = None
+        turn = self._knob_turn
+        if turn >= KNOB_FAR:
+            feeling = "cold"
+        elif turn > 0:
+            feeling = "cool"
+        elif turn <= -KNOB_FAR:
+            feeling = "hot"
+        else:
+            feeling = "warm"
+        for device in self._devices:
+            device.command = None  # the knob goes back to where the room wants it
+        await self.async_log(say(self.hass, "feel_knob", feeling=say(self.hass, f"feel_{feeling}")))
+        await self.async_feel(feeling)
+
+    @callback
+    def _cancel_knob_timer(self) -> None:
+        if self._knob_timer:
+            self._knob_timer()
+            self._knob_timer = None
 
     @callback
     def _cancel_hold_timer(self) -> None:

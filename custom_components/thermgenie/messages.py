@@ -24,6 +24,7 @@ _TEXTS: dict[str, tuple[str, str]] = {
     "tuning_sagging": ("Der Raum fällt nach dem Ziel wieder ab", "the room drops again after the target"),
     "tuning_slow": ("Der Raum heizt langsam auf", "the room heats up slowly"),
     "tuning_back": ("Der letzte Schritt hat es verschlechtert und wurde zurückgenommen", "the last step made it worse and was taken back"),
+    "feel_knob": ("Am Thermostat gedreht, gilt als {feeling}.", "Turned at the thermostat, counts as {feeling}."),
     "device_held": ("{device} wurde am Gerät verstellt und wird zurückgesetzt.", "{device} was changed at the device and is being set back."),
     "guard_log": ("Hitzeschutz: {felt} gefühlt, im Eco-Preset gestartet (Ziel {target}).", "Heat guard: felt {felt}, started on the eco preset (target {target})."),
     "guard_title": ("Klima automatisch gestartet", "Air conditioner started automatically"),

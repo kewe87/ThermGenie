@@ -102,3 +102,16 @@ def test_second_tap_corrects_the_first():
     m3 = Moment(now=1003.0 + 600, hour=18.2, weekend=False, outdoor=8.0, preset="heat_comfort", base=22.0)
     learner.feel("good", 22.5, 22.5, m3)
     assert len(learner.answers) == 2
+
+
+def test_face_goes_back_to_neutral_once_the_room_got_there():
+    learner = FeelLearner()
+    m = Moment(now=1000.0, hour=18.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=22.0)
+    learner.feel("cool", 22.0, 22.0, m)
+    assert learner.status(m)["showing"] == "cool"
+    assert not learner.arrived(1000.0 + 60)  # too soon, the face stays
+    assert learner.arrived(1000.0 + 20 * 60)
+    assert learner.status(m)["showing"] is None
+    assert learner.last_feeling == "cool"
+    restored = FeelLearner(learner.as_dict())
+    assert restored.showing() is None

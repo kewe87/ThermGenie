@@ -279,6 +279,8 @@ langsam zum Profilwert zurück. Die Profile Komfort, Eco und so weiter bleiben u
 
 Nach einer Änderung fragt ThermGenie per Push mit fünf Knöpfen nach, sobald der Raum etwa eine Stunde dort ist, bis
 sich die Antworten einpendeln. Statt Zahlen zeigt der Sensor *Tendenz*, ob der Raum wärmer wird, hält oder kühler wird.
+Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist, dann ist es wieder neutral. Eine
+zweite Antwort innerhalb von zwei Minuten ersetzt die erste, etwa nach einem Verklicken.
 Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
 Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung nur feiner.
 

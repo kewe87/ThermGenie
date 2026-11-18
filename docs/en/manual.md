@@ -278,8 +278,10 @@ than in the evening. What was said today counts at once and fades out over a few
 difference slowly goes back to the preset. The presets comfort, eco and so on stay and each learns along.
 
 After a change ThermGenie asks by push with five buttons once the room has been there for about an hour, until the
-answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler. In
-the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
+answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler.
+The face of the last answer stays until the room got there, then it is neutral again. A second answer within two
+minutes replaces the first, say after a slip of the finger.
+In the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
 works with any kind of radiator thermostat, with direct drive just finer.
 
 ## 5. Everyday routines

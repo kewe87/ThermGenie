@@ -38,6 +38,7 @@ SETTLED_ANSWERS = 3  # this many matching answers around an hour and the asking 
 SOFT = 0.4  # a setpoint changed by hand counts this much of an answer
 TENDENCY_BAND = 0.45  # K, a room this far from its target is warming or cooling
 TENDENCY_KEEP = 0.15  # K, and keeps doing so until this close, so a sensor flickering by 0.1 K does not flip it
+SHOW_MIN_SEC = 15 * 60  # the face of an answer stays at least this long, then until the room got there
 CORRECTION_SEC = 120  # an answer this soon after the last one corrects it instead of adding to it
 
 
@@ -103,6 +104,7 @@ class FeelLearner:
         self.ask_at: float | None = data.get("ask_at")
         self.last_feeling: str | None = data.get("last_feeling")
         self.last_at: float | None = data.get("last_at")
+        self.pending: bool = data.get("pending", False)  # the room is still on its way to where the last answer sent it
 
     def _weight(self, answer: Answer, m: Moment) -> float:
         w = answer.weight * exp(-0.5 * (_hour_distance(answer.hour, m.hour) / HOUR_WIDTH) ** 2)
@@ -144,6 +146,7 @@ class FeelLearner:
         felt = current if room is None or abs(room - current) > 1.0 else room
         self._take(_clamp(felt + STEP[feeling], LOW, HIGH), m)
         self.last_feeling, self.last_at = feeling, m.now
+        self.pending = feeling != "good"
         self.ask_at = None if feeling == "good" and self.settled(m.hour) else m.now
         return self.target(m)
 
@@ -151,6 +154,7 @@ class FeelLearner:
         """A number said in Thermal Wellbeing counts like a feeling that leads there."""
         self._take(_clamp(target, LOW, HIGH), m)
         self.last_at = m.now
+        self.pending = False
         self.ask_at = m.now
         return self.target(m)
 
@@ -186,6 +190,17 @@ class FeelLearner:
             return True
         return reached_since is not None and reached_since >= self.ask_at and (now - reached_since) / 60 >= ASK_AFTER_MIN
 
+    def arrived(self, now: float) -> bool:
+        """The room got where the last answer sent it: the face goes back to neutral. Return whether it changed."""
+        if not self.pending or self.last_at is None or now - self.last_at < SHOW_MIN_SEC:
+            return False
+        self.pending = False
+        return True
+
+    def showing(self) -> str | None:
+        """Return the feeling the card shows: the last answer while the room still acts on it."""
+        return self.last_feeling if self.pending else None
+
     def asked(self) -> None:
         self.ask_at = None
 
@@ -195,6 +210,7 @@ class FeelLearner:
             "answers": sum(1 for a in self.answers if a.weight == 1.0),
             "last_feeling": self.last_feeling,
             "last_at": self.last_at,
+            "showing": self.showing(),
             "asking": self.ask_at is not None,
         }
 
@@ -209,4 +225,5 @@ class FeelLearner:
             "ask_at": self.ask_at,
             "last_feeling": self.last_feeling,
             "last_at": self.last_at,
+            "pending": self.pending,
         }

@@ -936,6 +936,9 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     async def _async_ask_feeling(self) -> None:
         """Ask how it feels once the room got where the last answer sent it."""
         feel = self.runtime.feel
+        if self.tendency == "holding" and feel.arrived(dt_util.utcnow().timestamp()):
+            self._save_learned()
+            self.async_write_ha_state()
         if not self.wellbeing or self._mode == HVACMode.OFF or feel.ask_at is None:
             self._reached_since = None
             return

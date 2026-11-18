@@ -59,7 +59,8 @@ const FEELINGS = ["cold", "cool", "good", "warm", "hot"];
 const FACES = { cold: "🥶", cool: "🙁", good: "😊", warm: "😐", hot: "🥵" };
 const TENDENCY = { warming: ["mdi:arrow-top-right", "warming", "heat"], holding: ["mdi:arrow-right", "holding", "idle"], cooling: ["mdi:arrow-bottom-right", "cooling_t", "cool"] };
 const wellbeing = (state) => !!state?.attributes.wellbeing;
-const face = (state) => FACES[state.attributes.feel?.last_feeling] || FACES.good;
+// The face of an answer shows while the room acts on it, then it is neutral again
+const face = (state) => FACES[state.attributes.feel?.showing] || FACES.good;
 function feel(entityId, feeling) {
   haptic();
   call("feel", { entity_id: entityId, feeling }, null, "thermgenie");
@@ -619,7 +620,7 @@ class ThermGeniePopup extends HTMLElement {
 
   feelings(hass, state) {
     if (!wellbeing(state) || !canSetTarget(state)) return "";
-    const last = state.attributes.feel?.last_feeling;
+    const last = state.attributes.feel?.showing;
     const buttons = FEELINGS.map((f) => `<button class="choice feel ${last === f ? "active" : ""}" data-key="feel-${f}" data-feeling="${f}" aria-label="${text(hass, `f_${f}`)}">
         <span class="emoji">${FACES[f]}</span><span>${text(hass, `f_${f}`)}</span></button>`);
     return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div></section>`;

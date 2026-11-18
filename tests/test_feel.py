@@ -83,3 +83,22 @@ def test_tendency():
     assert tendency(21.9, 21.0, True) == "cooling"
     assert tendency(21.1, 21.0, True) == "holding"
     assert tendency(18.0, 21.0, False) == "holding"
+    # A sensor flickering by 0.1 K around a small gap does not flip it
+    assert tendency(21.3, 21.0, True) == "holding"
+    assert tendency(21.5, 21.0, True) == "cooling"
+    assert tendency(21.2, 21.0, True, "cooling") == "cooling"
+    assert tendency(21.1, 21.0, True, "cooling") == "holding"
+
+
+def test_second_tap_corrects_the_first():
+    learner = FeelLearner()
+    m = Moment(now=1000.0, hour=18.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=22.0)
+    learner.feel("warm", 22.0, 22.0, m)
+    m2 = Moment(now=1003.0, hour=18.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=22.0)
+    target = learner.feel("cool", 22.0, 22.0, m2)
+    assert len(learner.answers) == 1
+    assert learner.answers[0].diff == 0.5
+    assert target == 22.5
+    m3 = Moment(now=1003.0 + 600, hour=18.2, weekend=False, outdoor=8.0, preset="heat_comfort", base=22.0)
+    learner.feel("good", 22.5, 22.5, m3)
+    assert len(learner.answers) == 2

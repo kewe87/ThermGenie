@@ -36,7 +36,9 @@ ASK_AFTER_MIN = 60  # ask again this long after the room reached its new target
 ASK_TIMEOUT_MIN = 180  # or at the latest this long after a change
 SETTLED_ANSWERS = 3  # this many matching answers around an hour and the asking stops there
 SOFT = 0.4  # a setpoint changed by hand counts this much of an answer
-TENDENCY_BAND = 0.3  # K, closer than this the room holds
+TENDENCY_BAND = 0.45  # K, a room this far from its target is warming or cooling
+TENDENCY_KEEP = 0.15  # K, and keeps doing so until this close, so a sensor flickering by 0.1 K does not flip it
+CORRECTION_SEC = 120  # an answer this soon after the last one corrects it instead of adding to it
 
 
 @dataclass
@@ -78,13 +80,14 @@ def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
-def tendency(room: float | None, target: float | None, active: bool) -> str:
+def tendency(room: float | None, target: float | None, active: bool, previous: str = "holding") -> str:
     """Return warming, cooling or holding, as the card and the matrix show it."""
     if room is None or target is None or not active:
         return "holding"
-    if target - room > TENDENCY_BAND:
+    gap = target - room
+    if gap > (TENDENCY_KEEP if previous == "warming" else TENDENCY_BAND):
         return "warming"
-    if room - target > TENDENCY_BAND:
+    if -gap > (TENDENCY_KEEP if previous == "cooling" else TENDENCY_BAND):
         return "cooling"
     return "holding"
 
@@ -152,6 +155,10 @@ class FeelLearner:
         return self.target(m)
 
     def _take(self, right: float, m: Moment) -> None:
+        last = self.answers[-1] if self.answers else None
+        if last is not None and last.weight == 1.0 and 0 <= m.now - last.time < CORRECTION_SEC:
+            # A second tap right after the first one means the first was wrong
+            self.answers.pop()
         self._remember(Answer(m.now, m.hour, m.weekend, m.outdoor, m.preset, right - m.base))
         # Today counts at once: the target goes where it was asked, the rest fades
         self.day_form = _clamp(right - m.base - self.learned_diff(m), -DAY_FORM_MAX, DAY_FORM_MAX)

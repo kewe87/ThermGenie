@@ -223,6 +223,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self._phase = PhaseTracker()
         self.wellbeing = False  # Thermal Wellbeing: the target follows how people feel
         self._reached_since: float | None = None
+        self._tendency = "holding"
 
     def _heat_source(self) -> str:
         """Return what heats. An air conditioner that cannot heat leaves it to the radiators."""
@@ -903,7 +904,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     def tendency(self) -> str:
         """Return whether the room is getting warmer, cooler or holds, the only thing shown instead of numbers."""
         active = self._mode != HVACMode.OFF and self._blocked_by() is None
-        return tendency(self._reference(self.profile), self.target_temperature, active)
+        self._tendency = tendency(self._reference(self.profile), self.target_temperature, active, self._tendency)
+        return self._tendency
 
     async def async_feel(self, feeling: str) -> None:
         """Take how it feels in the room. In the thermostat mode it moves the setpoint."""

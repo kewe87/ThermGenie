@@ -36,6 +36,7 @@ from .const import (
     DOMAIN,
     ASK_ACTION,
     COMMAND_TIMEOUT_SEC,
+    CHILD_LOCK_SUFFIX,
     HOLD_WAIT_SEC,
     KNOB_FAR,
     KNOB_WAIT_SEC,
@@ -1101,7 +1102,36 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 await self._async_send(device, state, wanted)
                 await self._async_fan(device, state, wanted)
             await self._async_valve_control(now, force)
+            await self._async_child_locks()
         self.async_write_ha_state()
+
+    # Child lock
+
+    def _child_lock_of(self, device: Device) -> str | None:
+        """Return the child lock switch of the device a thermostat belongs to."""
+        registry = er.async_get(self.hass)
+        entry = registry.async_get(device.entity_id)
+        if entry is None or entry.device_id is None:
+            return None
+        for other in er.async_entries_for_device(registry, entry.device_id):
+            if other.domain == "switch" and other.entity_id.endswith(CHILD_LOCK_SUFFIX):
+                return other.entity_id
+        return None
+
+    async def _async_child_locks(self) -> None:
+        """In the thermostat mode and under a heating lock the knob is locked, in Thermal Wellbeing it is an answer."""
+        wanted = "off" if self.wellbeing and not self.lock.enabled else "on"
+        for device in self._devices:
+            if device.role != "heat" or (entity := self._child_lock_of(device)) is None:
+                continue
+            state = self.hass.states.get(entity)
+            if state is None or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN, wanted):
+                continue
+            try:
+                async with asyncio.timeout(COMMAND_TIMEOUT_SEC):
+                    await self.hass.services.async_call("switch", f"turn_{wanted}", {ATTR_ENTITY_ID: entity}, blocking=True)
+            except (HomeAssistantError, TimeoutError) as err:
+                _LOGGER.warning("%s: child lock %s failed: %s", self.entity_id, entity, err)
 
     # Valve control
 

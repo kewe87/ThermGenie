@@ -79,8 +79,9 @@ sich die Antworten einpendeln. Statt Zahlen zeigt der Sensor *Tendenz*, ob der R
 Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist, dann ist es wieder neutral. Eine
 zweite Antwort innerhalb von zwei Minuten ersetzt die erste, etwa nach einem Verklicken.
 Auch der Drehknopf am Thermostat ist eine Antwort: ein Stück hoch heißt etwas kühl, ein Stück runter etwas warm,
-ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin soll. In
-Räumen mit Heizsperre bleibt der Knopf gesperrt.
+ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin soll. Hat das
+Thermostat eine Kindersicherung, schaltet ThermGenie sie selbst: im Thermostat-Betrieb und bei Heizsperre an, in
+Thermal Wellbeing aus.
 Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
 Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung nur feiner.
 

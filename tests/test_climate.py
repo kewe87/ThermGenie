@@ -1040,3 +1040,31 @@ async def test_wellbeing_takes_a_turn_of_the_knob_as_an_answer(hass, radio):
     await hass.async_block_till_done()
     assert hass.states.get("sensor.wohnbereich_feeling").state == "cool"
     assert hass.states.get(ENTITY).attributes["temperature"] > 21.0
+
+
+async def test_the_knob_is_locked_in_the_thermostat_mode_and_free_in_wellbeing(hass, radio):
+    registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    config = MockConfigEntry(domain="mqtt")
+    config.add_to_hass(hass)
+    trv = device_registry.async_get_or_create(config_entry_id=config.entry_id, identifiers={("mqtt", "trv")})
+    registry.async_get_or_create("climate", "mqtt", "wz", suggested_object_id="wz", device_id=trv.id)
+    registry.async_get_or_create("switch", "mqtt", "wz_lock", suggested_object_id="wz_child_lock", device_id=trv.id)
+    switched = []
+
+    async def _switch(call: ServiceCall):
+        switched.append((call.service, call.data["entity_id"]))
+        hass.states.async_set("switch.wz_child_lock", "on" if call.service == "turn_on" else "off")
+
+    hass.states.async_set("switch.wz_child_lock", "off")
+    devices(hass)
+    await setup(hass)
+    # The switch platform of the integration brings the real services, the lock switch is a stand-in
+    hass.services.async_register("switch", "turn_on", _switch)
+    hass.services.async_register("switch", "turn_off", _switch)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    assert hass.states.get("switch.wz_child_lock").state == "on"
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.async_block_till_done()
+    assert switched[-1] == ("turn_off", "switch.wz_child_lock"), switched
+    assert hass.states.get("switch.wz_child_lock").state == "off"

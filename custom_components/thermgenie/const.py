@@ -84,6 +84,7 @@ CONF_VALVE_WAIT = "valve_wait_min"
 CONF_VALVE_CONTROL = "valve_control"  # radiator -> its valve opening number, driven by the valve control
 OPENING_SUFFIX = "valve_opening_degree"
 CLOSING_SUFFIX = "valve_closing_degree"
+CHILD_LOCK_SUFFIX = "child_lock"  # the knob of a thermostat is locked in the thermostat mode and free in Thermal Wellbeing
 
 CONF_GUARD_SENSOR = "guard_sensor"
 CONF_GUARD_ABOVE = "guard_above"

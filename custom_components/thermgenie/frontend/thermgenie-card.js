@@ -26,6 +26,7 @@ const TEXT = {
     thermostat: "Thermostat", wellbeing: "Thermal Wellbeing", howFeels: "How does it feel?", warmer: "Warmer", cooler: "Cooler",
     warming: "Getting warmer", holding: "Holding", cooling_t: "Getting cooler", learned: "Learned from {count} answers", noAnswers: "Tell how it feels, it learns from every answer",
     f_cold: "Cold", f_cool: "A bit cool", f_good: "Just right", f_warm: "A bit warm", f_hot: "Too warm", frostWell: "Frost protection",
+    lockedShort: "locked", wellbeingHint: "Say how it feels instead of setting degrees",
   },
   de: {
     off: "Aus", heat: "Heizen", cool: "Kühlen", dry: "Trocknen", fan_only: "Lüfter",
@@ -52,6 +53,7 @@ const TEXT = {
     thermostat: "Thermostat", wellbeing: "Thermal Wellbeing", howFeels: "Wie fühlt es sich an?", warmer: "Wärmer", cooler: "Kühler",
     warming: "Wird wärmer", holding: "Hält", cooling_t: "Wird kühler", learned: "Gelernt aus {count} Rückmeldungen", noAnswers: "Sag, wie es sich anfühlt, jede Antwort lernt mit",
     f_cold: "Kalt", f_cool: "Etwas kühl", f_good: "Passt", f_warm: "Etwas warm", f_hot: "Zu warm", frostWell: "Frostschutz",
+    lockedShort: "gesperrt", wellbeingHint: "Sagen, wie es sich anfühlt, statt Grad einzustellen",
   },
 };
 
@@ -432,6 +434,11 @@ class ThermGeniePopup extends HTMLElement {
     $("down").addEventListener("click", () => (wellbeing(this.state) ? feel(this.entityId, "warm") : this.step(-1)));
     $("up").addEventListener("click", () => (wellbeing(this.state) ? feel(this.entityId, "cool") : this.step(1)));
     this.$.sheet.addEventListener("click", (event) => this.click(event));
+    this.$.sheet.addEventListener("change", (event) => {
+      if (event.target.id !== "mode") return;
+      haptic();
+      call("set_hvac_mode", { entity_id: this.entityId, hvac_mode: event.target.value });
+    });
     this.bindDial();
   }
 
@@ -610,7 +617,7 @@ class ThermGeniePopup extends HTMLElement {
       button.setAttribute("aria-selected", tab === name);
       this.shadowRoot.getElementById(`page-${name}`).hidden = tab !== name;
     }
-    draw(this, this.$.sections, [this.feelings(hass, state), this.routines(hass, state, true), this.modes(hass, state), this.presets(hass, state), this.switcher(hass, state)].join(""));
+    draw(this, this.$.sections, [this.feelings(hass, state), this.routines(hass, state, true), this.presets(hass, state), this.settings(hass, state)].join(""));
     draw(this, this.$.details, well ? [this.routines(hass, state), this.learned(hass, a)].join("") : [this.routines(hass, state), this.climate(hass, a), this.devices(hass, a)].join(""));
     this.shadowRoot.querySelector(".s-chart").hidden = well;
     this.shadowRoot.getElementById("chart-title").textContent = text(hass, "history");
@@ -626,10 +633,14 @@ class ThermGeniePopup extends HTMLElement {
     return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div></section>`;
   }
 
-  switcher(hass, state) {
+  // Things set now and then, not every day: one quiet block with a picker and a switch
+  settings(hass, state) {
     const well = wellbeing(state);
-    const option = (on, name, iconName) => `<button class="choice ${well === on ? "active" : ""} tone-idle" data-key="well-${on}" data-well="${on ? "on" : "off"}" aria-pressed="${well === on}">${icon(iconName)}<span>${text(hass, name)}</span></button>`;
-    return `<section class="s-switch"><div class="choices">${option(false, "thermostat", "mdi:thermostat")}${option(true, "wellbeing", "mdi:heart-pulse")}</div></section>`;
+    const toggle = `<div class="row">
+        <span class="row-label">${icon("mdi:heart-pulse")}<span>${text(hass, "wellbeing")}<small>${text(hass, "wellbeingHint")}</small></span></span>
+        <button class="toggle ${well ? "on" : ""}" role="switch" aria-checked="${well}" aria-label="${text(hass, "wellbeing")}" data-key="well-toggle" data-well="${well ? "off" : "on"}"><i></i></button>
+      </div>`;
+    return `<section class="s-settings">${this.modes(hass, state)}${toggle}</section>`;
   }
 
   learned(hass, a) {
@@ -640,12 +651,14 @@ class ThermGeniePopup extends HTMLElement {
   modes(hass, state) {
     const locked = state.attributes.heat_lock;
     const modes = [...new Set(["off", ...(state.attributes.hvac_modes || [])])];
-    const buttons = modes.map((mode) => {
+    const options = modes.map((mode) => {
       const blocked = locked && mode === "heat";
-      return `<button class="choice ${state.state === mode ? "active" : ""} tone-${mode === "heat" ? "heat" : mode === "off" ? "idle" : "cool"}" data-key="mode-${mode}" data-mode="${mode}" aria-pressed="${state.state === mode}" ${blocked ? "disabled" : ""}>
-        ${icon(blocked ? "mdi:lock" : MODE_ICONS[mode] || "mdi:thermostat")}<span>${text(hass, mode)}</span></button>`;
+      return `<option value="${mode}" ${state.state === mode ? "selected" : ""} ${blocked ? "disabled" : ""}>${esc(text(hass, mode))}${blocked ? ` (${text(hass, "lockedShort")})` : ""}</option>`;
     });
-    return `<section><h3>${text(hass, "modes")}</h3><div class="choices">${buttons.join("")}</div></section>`;
+    return `<div class="row">
+        <label class="row-label" for="mode">${icon(MODE_ICONS[state.state] || "mdi:thermostat")}<span>${text(hass, "modes")}</span></label>
+        <span class="select tone-${state.state === "heat" ? "heat" : state.state === "off" ? "idle" : "cool"}"><select id="mode" data-key="mode-select">${options.join("")}</select>${icon("mdi:chevron-down")}</span>
+      </div>`;
   }
 
   presets(hass, state) {
@@ -870,10 +883,26 @@ const POPUP_CSS = `
   .choice.active { font-weight: 500; background: color-mix(in srgb, var(--tone) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--tone); }
   .choice.active ha-icon { color: var(--tone); }
   .choice.active small { color: inherit; }
-  .feels .choice { --tone: var(--primary-color, #2a78d6); font-size: 11px; }
-  .feels .emoji { font-size: 24px; line-height: 1; }
+  .feels { gap: 6px; }
+  .feels .choice { --tone: var(--primary-color, #2a78d6); min-height: 78px; padding: 10px 2px 8px; gap: 6px; font-size: 12px; }
+  .feels .choice span { white-space: nowrap; }
+  .feels .emoji { font-size: 32px; line-height: 1.2; overflow: visible; }
+  .s-settings { margin-top: 18px; border-radius: 16px; background: color-mix(in srgb, var(--primary-text-color) 5%, transparent); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 14px; }
+  .row + .row { border-top: 1px solid var(--divider-color, rgba(127, 127, 127, .2)); }
+  .row-label { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; }
+  .row-label > span { display: flex; flex-direction: column; min-width: 0; }
+  .row-label small { font-size: 11px; color: var(--secondary-text-color); }
+  .row-label ha-icon { --mdc-icon-size: 20px; flex: none; color: var(--secondary-text-color); }
+  .select { position: relative; display: inline-flex; align-items: center; flex: none; }
+  .select select { appearance: none; -webkit-appearance: none; min-height: 38px; padding: 0 34px 0 14px; font: inherit; font-size: 14px; font-weight: 500; color: var(--primary-text-color); border: none; border-radius: 12px; background: color-mix(in srgb, var(--tone, var(--primary-text-color)) 14%, transparent); cursor: pointer; }
+  .select select option { color: var(--primary-text-color); background: var(--solid); }
+  .select ha-icon { position: absolute; right: 8px; --mdc-icon-size: 18px; pointer-events: none; color: var(--secondary-text-color); }
+  .toggle { position: relative; flex: none; width: 50px; height: 30px; border-radius: 15px; background: color-mix(in srgb, var(--primary-text-color) 22%, transparent); transition: background .15s; }
+  .toggle i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); transition: transform .15s; }
+  .toggle.on { background: var(--primary-color, #2a78d6); }
+  .toggle.on i { transform: translateX(20px); }
   #dial.well #big { font-size: 64px; }
-  .s-switch { margin-top: 4px; }
   .hint { margin: 0; font-size: 13px; color: var(--secondary-text-color); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px 6px 8px; font-size: 13px; border-radius: 16px; color: var(--secondary-text-color); background: color-mix(in srgb, var(--primary-text-color) 6%, transparent); }
@@ -937,7 +966,7 @@ const POPUP_CSS = `
   }
   @media (prefers-reduced-motion: reduce) {
     #backdrop, #sheet { animation: none; }
-    .seg, .choice { transition: none; }
+    .seg, .choice, .toggle, .toggle i { transition: none; }
   }
 `;
 

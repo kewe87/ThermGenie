@@ -951,10 +951,15 @@ const POPUP_CSS = `
     #sheet { width: 100vw; border-radius: 22px 22px 0 0; }
   }
   @media (min-width: 700px) and (orientation: landscape) {
-    #sheet { width: min(860px, 94vw); }
-    #page-control:not([hidden]) { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 0 28px; align-items: center; }
+    #sheet { width: min(900px, 94vw); min-height: min(86vh, 820px); min-height: min(86dvh, 820px); padding: 22px 26px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; }
+    #page-control:not([hidden]) { flex: 1; display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 0 32px; align-items: center; margin-top: 22px; }
+    #page-details:not([hidden]) { margin-top: 22px; }
     #notice { grid-column: 1 / -1; }
-    #dial { width: min(280px, 56vh); margin: 10px auto 0; }
+    #dial { width: min(330px, 54vh); margin: 0 auto; }
+    #sections > section { margin-top: 26px; }
+    .feels .choice { min-height: 96px; }
+    .choice { min-height: 64px; }
+    .row { min-height: 64px; }
     #sections > section:first-child { margin-top: 0; }
     #page-details:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
     #details { display: contents; }

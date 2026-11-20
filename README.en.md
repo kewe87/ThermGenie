@@ -72,30 +72,46 @@ without new values it goes on with its own sensor. The rare values cost hardly a
 
 ### Thermal Wellbeing: by feeling instead of numbers
 
-Every room can be switched between *Thermostat* and *Thermal Wellbeing*, at the bottom of the popup, with the switch
-*Thermal Wellbeing* or the action `thermgenie.set_wellbeing`. In Thermal Wellbeing there are no degrees any more, neither
-on the card nor in the popup. You only say how it feels: 🥶 cold, 🙁 a bit cool, 😊 just right, 😐 a bit warm,
-🥵 too warm, with the faces, plus and minus or the action `thermgenie.feel`. ThermGenie keeps every answer with the time
-of day, weekday, outdoor temperature and preset and learns what feels right when, for example warmer in the morning
-than in the evening. What was said today counts at once and fades out over a few hours. Without answers the learned
-difference slowly goes back to the preset. The presets comfort, eco and so on stay and each learns along.
+**Background.** Whether a room is comfortable depends only partly on the air temperature. Humidity, draughts, the
+warmth of walls and windows, clothing, activity, the time of day and the season all play a part, and everybody feels
+differently. Comfort research has described this for a long time (Fanger's PMV model, ISO 7730), yet a thermostat only
+knows a number. So people set 21 °C, still find it chilly and turn it up to 23 °C, or they see "19 °C" and feel cold
+before they have even noticed how the room feels. Thermal Wellbeing turns this around. It does not ask for a number but
+for how it feels, and learns from that what is really comfortable in this room at which time.
 
-After a change ThermGenie asks by push with five buttons once the room has been there for about an hour, until the
-answers settle. Instead of numbers the sensor *Tendency* tells whether the room gets warmer, holds or gets cooler.
-The face of the last answer stays until the room got there, then it is neutral again. A second answer within two
-minutes replaces the first, say after a slip of the finger.
-The knob of the thermostat is an answer as well: a little up means a bit cool, a little down a bit warm, turned 1.5
-degrees or more cold or hot. Then ThermGenie turns the knob back to where the room is going. When the
+**Switching.** Every room can be switched between *Thermostat* and *Thermal Wellbeing*: with the switch at the bottom of
+the popup, with the switch *Thermal Wellbeing* on the device page or with the action `thermgenie.set_wellbeing`. The
+room does not jump, it starts where it is. In Thermal Wellbeing there is no number anymore, neither on the card nor in
+the popup nor in the push question.
+
+**Answers.** One only says how it feels: 🥶 cold, 🙁 a bit cool, 😊 fine, 😐 a bit warm, 🥵 too warm. That works with the
+faces, with plus and minus in the popup, with the buttons of a push notification or with the action `thermgenie.feel`.
+The knob of the thermostat is an answer as well: turned up a bit means a bit cool, down a bit means a bit warm, from
+1.5 degrees on cold or too warm. Afterwards ThermGenie sets the knob back to where the room is heading. When the
 thermostat has a child lock, ThermGenie sets it itself: on in the thermostat mode and under a heating lock, off in
-Thermal Wellbeing.
+Thermal Wellbeing. A second answer within two minutes replaces the first one, for example after a mis-tap.
 
-*Details* tells in words what was learned so far: for mornings, midday, evenings and late evenings, whether it should
-be warmer or cooler than set and how sure that is already, without any temperature. If an answer is far from it,
-ThermGenie asks whether something special is going on: sport, unwell, just got home or a reason of one's own. Then the
-answer does not count for later, when unwell only for today. Answers with the window open are not learned, and while
-the window is open ThermGenie does not ask.
-In the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
-works with any kind of radiator thermostat, with direct drive just finer.
+**Learning.** ThermGenie keeps every answer with the time of day, the weekday, the outdoor temperature and the preset.
+From that it knows for every moment how far the comfortable temperature lies from the preset: answers at a similar hour,
+in similar weather and under the same preset count most, old answers fade. What was said today counts at once and fades
+out over a few hours, so a single chilly evening does not decide the whole week. Without answers, what was learned
+slowly goes back to the preset. The presets Comfort, Eco and so on stay and learn along. In the thermostat mode
+ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer.
+
+**Asking.** After a change ThermGenie asks by push once the room has been where the answer sent it for about an hour,
+until the answers around a time of day settle. Then it no longer asks there. It does not ask with the window open, and
+answers with the window open are kept but not learned. If an answer is far from what was learned for this time, a
+second question follows: is something special going on? The choice is sport, unwell, just got home, a reason of one's
+own to type in, or "all normal". With a special reason the answer does not count for later, when unwell only for today.
+This way ThermGenie learns the everyday and not the exceptions.
+
+**What you see.** Instead of a number the card shows a face and a tendency: getting warmer, holding or getting cooler,
+also as the sensor *Tendency*. The face of the last answer stays until the room got there, then it is neutral again.
+*Details* tells in words what was learned so far: for mornings, midday, evenings and late evenings, whether it should be
+warmer or cooler than set, how sure that is already and where ThermGenie no longer asks. Below are the answers that do
+not count for later because of a special reason.
+
+Thermal Wellbeing works with any kind of radiator thermostat, with direct drive of the valves only more finely.
 
 ### Optimize regulation
 

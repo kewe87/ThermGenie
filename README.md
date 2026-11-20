@@ -73,30 +73,48 @@ Werte kosten kaum Batterie.
 
 ### Thermal Wellbeing: nach Gefühl statt nach Zahl
 
-Jeder Raum lässt sich zwischen *Thermostat* und *Thermal Wellbeing* umschalten, unten im Popup, mit dem Schalter
-*Thermal Wellbeing* oder der Aktion `thermgenie.set_wellbeing`. In Thermal Wellbeing gibt es keine Gradzahl mehr, weder
-auf der Karte noch im Popup. Man sagt nur, wie es sich anfühlt: 🥶 kalt, 🙁 etwas kühl, 😊 passt, 😐 etwas warm,
-🥵 zu warm, über die Smileys, Plus und Minus oder die Aktion `thermgenie.feel`. ThermGenie merkt sich jede Antwort mit
-Tageszeit, Wochentag, Außentemperatur und Profil und lernt daraus, was wann angenehm ist, etwa morgens wärmer als
-abends. Was heute gesagt wurde, wirkt sofort und klingt über einige Stunden ab. Ohne Rückmeldung kehrt das Gelernte
-langsam zum Profilwert zurück. Die Profile Komfort, Eco und so weiter bleiben und lernen jeweils mit.
+**Hintergrund.** Ob ein Raum angenehm ist, hängt nur zum Teil an der Lufttemperatur. Luftfeuchte, Zugluft, die
+Wärme von Wänden und Fenstern, Kleidung, Bewegung, Tageszeit und die Jahreszeit spielen mit, und jeder Mensch empfindet
+anders. Die Komfortforschung beschreibt das seit Langem (etwa Fangers PMV-Modell, ISO 7730), doch ein Thermostat kennt
+nur eine Zahl. Die Folge: Man stellt 21 °C ein, findet es trotzdem zu kühl und dreht auf 23 °C, oder man sieht „19 °C“
+und friert, bevor man überhaupt nachgespürt hat. Thermal Wellbeing dreht das um. Es fragt nicht nach einer Zahl, sondern
+danach, wie es sich anfühlt, und lernt daraus, was in diesem Raum zu welcher Zeit wirklich angenehm ist.
 
-Nach einer Änderung fragt ThermGenie per Push mit fünf Knöpfen nach, sobald der Raum etwa eine Stunde dort ist, bis
-sich die Antworten einpendeln. Statt Zahlen zeigt der Sensor *Tendenz*, ob der Raum wärmer wird, hält oder kühler wird.
-Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist, dann ist es wieder neutral. Eine
-zweite Antwort innerhalb von zwei Minuten ersetzt die erste, etwa nach einem Verklicken.
-Auch der Drehknopf am Thermostat ist eine Antwort: ein Stück hoch heißt etwas kühl, ein Stück runter etwas warm,
-ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin soll. Hat das
-Thermostat eine Kindersicherung, schaltet ThermGenie sie selbst: im Thermostat-Betrieb und bei Heizsperre an, in
-Thermal Wellbeing aus.
+**Umschalten.** Jeder Raum lässt sich zwischen *Thermostat* und *Thermal Wellbeing* umschalten: mit dem Schalter unten
+im Popup, mit dem Schalter *Thermal Wellbeing* auf der Geräteseite oder mit der Aktion `thermgenie.set_wellbeing`. Der
+Raum springt dabei nicht, er startet dort, wo er gerade ist. In Thermal Wellbeing gibt es keine Gradzahl mehr, weder
+auf der Karte noch im Popup noch in der Nachfrage per Push.
 
-Unter *Details* steht in Worten, was bisher gelernt ist: für morgens, mittags, abends und spätabends, ob es wärmer
-oder kühler als eingestellt sein soll und wie sicher das schon ist, ganz ohne Temperaturen. Weicht eine Antwort deutlich
-davon ab, fragt ThermGenie nach, ob gerade etwas Besonderes ist: Sport, krank, gerade heimgekommen oder ein eigener
-Grund. Dann zählt die Antwort nicht dauerhaft, bei krank nur für heute. Antworten bei offenem Fenster lernt ThermGenie
-nicht mit, und solange das Fenster offen ist, fragt es auch nicht.
-Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
-Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung nur feiner.
+**Antworten.** Man sagt nur, wie es sich anfühlt: 🥶 kalt, 🙁 etwas kühl, 😊 passt, 😐 etwas warm, 🥵 zu warm. Das geht
+über die Smileys, über Plus und Minus im Popup, über die Knöpfe einer Push-Mitteilung oder mit der Aktion
+`thermgenie.feel`. Auch der Drehknopf am Thermostat ist eine Antwort: ein Stück hoch heißt etwas kühl, ein Stück runter
+etwas warm, ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin
+soll. Hat das Thermostat eine Kindersicherung, schaltet ThermGenie sie selbst: im Thermostat-Betrieb und bei Heizsperre
+an, in Thermal Wellbeing aus. Eine zweite Antwort innerhalb von zwei Minuten ersetzt die erste, etwa nach einem
+Verklicken.
+
+**Lernen.** ThermGenie merkt sich jede Antwort mit Tageszeit, Wochentag, Außentemperatur und Profil. Daraus ergibt sich
+für jeden Moment, wie weit das Angenehme vom Profilwert entfernt liegt: Antworten zu ähnlicher Uhrzeit, bei ähnlichem
+Wetter und im selben Profil zählen am meisten, alte Antworten verblassen. Was heute gesagt wurde, wirkt sofort und
+klingt über einige Stunden ab, so dass ein einzelner fröstelnder Abend nicht die ganze Woche bestimmt. Ohne Rückmeldung
+kehrt das Gelernte langsam zum Profilwert zurück. Die Profile Komfort, Eco und so weiter bleiben und lernen jeweils
+mit. Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
+
+**Nachfragen.** Nach einer Änderung fragt ThermGenie per Push nach, sobald der Raum etwa eine Stunde dort ist, wo die
+Antwort ihn hingeschickt hat, und das so lange, bis sich die Antworten zu einer Tageszeit einpendeln. Danach fragt es
+dort nicht mehr. Bei offenem Fenster fragt es nicht, und Antworten bei offenem Fenster werden zwar gespeichert, aber
+nicht gelernt. Weicht eine Antwort deutlich von dem ab, was für diese Zeit schon gelernt ist, kommt eine zweite Frage:
+Ist gerade etwas Besonderes? Zur Wahl stehen Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
+„ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei krank nur für heute. So lernt
+ThermGenie den Alltag und nicht die Ausnahmen.
+
+**Was man sieht.** Statt einer Zahl zeigt die Karte ein Gesicht und eine Tendenz: wird wärmer, hält oder wird kühler,
+auch als Sensor *Tendenz*. Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist, dann ist
+es wieder neutral. Unter *Details* steht in Worten, was bisher gelernt ist: für morgens, mittags, abends und
+spätabends, ob es wärmer oder kühler als eingestellt sein soll, wie sicher das schon ist und wo ThermGenie nicht mehr
+nachfragt. Darunter stehen die Antworten, die wegen eines besonderen Grunds nicht dauerhaft zählen.
+
+Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung der Ventile nur feiner.
 
 ### Regelung optimieren
 

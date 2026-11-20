@@ -115,3 +115,59 @@ def test_face_goes_back_to_neutral_once_the_room_got_there():
     assert learner.last_feeling == "cool"
     restored = FeelLearner(learner.as_dict())
     assert restored.showing() is None
+
+
+def test_the_outlook_tells_the_times_of_the_day_in_words():
+    learner = FeelLearner()
+    # Evenings it was wanted warmer, three times
+    for day in range(3):
+        m = Moment(1_800_000_000 + day * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+        learner.feel("cold", 21.0, 21.0, m)
+    now = Moment(1_800_000_000 + 3 * 86400 + 3600, 19.2, False, 5.0, "heat_comfort", 21.0)
+    outlook = learner.outlook(now)
+    slots = {s["slot"]: s for s in outlook["slots"]}
+    assert slots["evening"]["lean"].startswith("warmer")
+    assert slots["evening"]["confidence"] in ("medium", "high")
+    assert slots["evening"]["now"] is True
+    assert slots["morning"]["lean"] == "open"  # nothing said about the morning
+    assert all(isinstance(v, (str, bool)) for s in outlook["slots"] for v in s.values())  # words, never temperatures
+
+
+def _settled_evening(learner):
+    for day in range(4):
+        learner.feel("good", 21.0, 21.0, Moment(1_800_000_000 + day * 86400, 19.0, False, 5.0, "heat_comfort", 21.0))
+
+
+def test_an_unusual_answer_asks_for_a_reason_and_sport_does_not_count():
+    learner = FeelLearner()
+    _settled_evening(learner)
+    m = Moment(1_800_000_000 + 4 * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+    before = learner.learned_diff(m)
+    learner.feel("hot", 21.0, 21.0, m)  # far too warm where it usually fits: sport
+    assert learner.status(m)["checking"] is True
+    assert learner.explain("sport", Moment(m.now + 60, 19.0, False, 5.0, "heat_comfort", 21.0))
+    assert learner.learned_diff(m) == before
+    assert learner.form(m.now) == 0.0
+    assert learner.exceptions()[0]["reason"] == "sport"
+    assert learner.status(m)["checking"] is False
+
+
+def test_a_usual_answer_and_normal_keep_learning():
+    learner = FeelLearner()
+    _settled_evening(learner)
+    m = Moment(1_800_000_000 + 4 * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+    learner.feel("good", 21.0, 21.0, m)
+    assert learner.checking is None
+    learner.feel("cold", 21.0, 21.0, Moment(m.now + 600, 19.2, False, 5.0, "heat_comfort", 21.0))
+    assert learner.checking is not None
+    assert learner.explain("normal", Moment(m.now + 700, 19.2, False, 5.0, "heat_comfort", 21.0))
+    assert learner.answers[-1].weight == 1.0
+
+
+def test_an_answer_with_the_window_open_is_kept_but_not_learned():
+    learner = FeelLearner()
+    m = Moment(1_800_000_000, 19.0, False, 5.0, "heat_comfort", 21.0)
+    learner.feel("good", 17.0, 21.0, m, special="window")
+    assert learner.learned_diff(m) == 0.0
+    assert learner.exceptions()[0]["reason"] == "window"
+    assert learner.status(m)["answers"] == 0

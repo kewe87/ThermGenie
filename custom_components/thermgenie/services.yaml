@@ -55,3 +55,23 @@ set_wellbeing:
       required: true
       selector:
         boolean:
+explain_feeling:
+  target:
+    entity:
+      integration: thermgenie
+      domain: climate
+  fields:
+    reason:
+      required: true
+      selector:
+        select:
+          options:
+            - normal
+            - sport
+            - unwell
+            - arrived
+            - window
+            - other
+    note:
+      selector:
+        text:

@@ -40,6 +40,7 @@ CONF_BOOST_MINUTES = "boost_minutes"
 
 CONF_NOTIFY = "notify_service"
 ASK_ACTION = "THERMGENIE_FEEL_"  # push button: THERMGENIE_FEEL_<feeling>_<entry id>
+REASON_ACTION = "THERMGENIE_WHY_"  # push button: THERMGENIE_WHY_<reason>_<entry id>
 CONF_TTS = "tts_service"
 CONF_TTS_TARGETS = "tts_targets"
 CONF_QUIET = "quiet_entity"

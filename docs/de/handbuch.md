@@ -292,6 +292,12 @@ Auch der Drehknopf am Thermostat ist eine Antwort: ein Stück hoch heißt etwas 
 ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin soll. Hat das
 Thermostat eine Kindersicherung, schaltet ThermGenie sie selbst: im Thermostat-Betrieb und bei Heizsperre an, in
 Thermal Wellbeing aus.
+
+Unter *Details* steht in Worten, was bisher gelernt ist: für morgens, mittags, abends und spätabends, ob es wärmer
+oder kühler als eingestellt sein soll und wie sicher das schon ist, ganz ohne Temperaturen. Weicht eine Antwort deutlich
+davon ab, fragt ThermGenie nach, ob gerade etwas Besonderes ist: Sport, krank, gerade heimgekommen oder ein eigener
+Grund. Dann zählt die Antwort nicht dauerhaft, bei krank nur für heute. Antworten bei offenem Fenster lernt ThermGenie
+nicht mit, und solange das Fenster offen ist, fragt es auch nicht.
 Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter Sollwert zählt als leise Rückmeldung.
 Thermal Wellbeing funktioniert mit jeder Art von Heizkörperthermostat, mit Direktsteuerung nur feiner.
 

@@ -291,6 +291,12 @@ The knob of the thermostat is an answer as well: a little up means a bit cool, a
 degrees or more cold or hot. Then ThermGenie turns the knob back to where the room is going. When the
 thermostat has a child lock, ThermGenie sets it itself: on in the thermostat mode and under a heating lock, off in
 Thermal Wellbeing.
+
+*Details* tells in words what was learned so far: for mornings, midday, evenings and late evenings, whether it should
+be warmer or cooler than set and how sure that is already, without any temperature. If an answer is far from it,
+ThermGenie asks whether something special is going on: sport, unwell, just got home or a reason of one's own. Then the
+answer does not count for later, when unwell only for today. Answers with the window open are not learned, and while
+the window is open ThermGenie does not ask.
 In the thermostat mode ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer. Thermal Wellbeing
 works with any kind of radiator thermostat, with direct drive just finer.
 

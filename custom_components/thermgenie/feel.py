@@ -40,6 +40,18 @@ TENDENCY_BAND = 0.45  # K, a room this far from its target is warming or cooling
 TENDENCY_KEEP = 0.15  # K, and keeps doing so until this close, so a sensor flickering by 0.1 K does not flip it
 SHOW_MIN_SEC = 15 * 60  # the face of an answer stays at least this long, then until the room got there
 CORRECTION_SEC = 120  # an answer this soon after the last one corrects it instead of adding to it
+# The outlook: what the answers so far say about the times of the day, in words
+SLOTS = (("morning", 7.5), ("midday", 12.5), ("evening", 19.0), ("night", 22.5))
+LEAN_SAME = 0.25  # K, closer to the preset than this is as set
+LEAN_CLEAR = 0.75  # K, from here on clearly warmer or cooler
+SUPPORT = ((2.5, "high"), (1.0, "medium"), (0.3, "low"))  # weight of the answers behind a slot
+# An answer far from what was learned is asked about: was there something special?
+UNUSUAL_K = 1.0  # K between the answer and what was learned for this moment
+UNUSUAL_SUPPORT = 1.0  # only once enough answers speak for this moment
+CHECK_SEC = 30 * 60  # the reason may come this long after the answer
+# Reasons that make an answer not count for later; unwell still counts for today
+REASONS = ("sport", "unwell", "arrived", "window", "other")
+KEEP_TODAY = ("unwell",)
 
 
 @dataclass
@@ -51,13 +63,17 @@ class Answer:
     preset: str
     diff: float  # right temperature minus the preset
     weight: float = 1.0
+    reason: str | None = None  # something special: the answer does not count for later
 
     def as_dict(self) -> dict[str, Any]:
-        return {"t": round(self.time), "h": round(self.hour, 2), "we": self.weekend, "o": self.outdoor, "p": self.preset, "d": round(self.diff, 2), "w": self.weight}
+        data = {"t": round(self.time), "h": round(self.hour, 2), "we": self.weekend, "o": self.outdoor, "p": self.preset, "d": round(self.diff, 2), "w": self.weight}
+        if self.reason:
+            data["r"] = self.reason
+        return data
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Answer":
-        return cls(data["t"], data["h"], data.get("we", False), data.get("o"), data.get("p", "comfort"), data["d"], data.get("w", 1.0))
+        return cls(data["t"], data["h"], data.get("we", False), data.get("o"), data.get("p", "comfort"), data["d"], data.get("w", 1.0), data.get("r"))
 
 
 @dataclass
@@ -93,6 +109,13 @@ def tendency(room: float | None, target: float | None, active: bool, previous: s
     return "holding"
 
 
+def _lean(diff: float) -> str:
+    if abs(diff) < LEAN_SAME:
+        return "same"
+    side = "warmer" if diff > 0 else "cooler"
+    return f"{side}_clear" if abs(diff) >= LEAN_CLEAR else side
+
+
 class FeelLearner:
     """Learns what feels right in one room."""
 
@@ -105,6 +128,7 @@ class FeelLearner:
         self.last_feeling: str | None = data.get("last_feeling")
         self.last_at: float | None = data.get("last_at")
         self.pending: bool = data.get("pending", False)  # the room is still on its way to where the last answer sent it
+        self.checking: dict[str, Any] | None = data.get("checking")  # an unusual answer waits for its reason
 
     def _weight(self, answer: Answer, m: Moment) -> float:
         w = answer.weight * exp(-0.5 * (_hour_distance(answer.hour, m.hour) / HOUR_WIDTH) ** 2)
@@ -133,22 +157,71 @@ class FeelLearner:
         hours = max(now - self.day_form_at, 0.0) / 3600
         return self.day_form * exp(-hours / DAY_FORM_HOURS)
 
+    def support(self, m: Moment) -> float:
+        """Return how many answers, weighted, speak for this moment."""
+        return sum(self._weight(answer, m) for answer in self.answers)
+
+    def outlook(self, m: Moment) -> dict[str, Any]:
+        """What was learned so far, per time of the day and for today, without a single temperature."""
+        slots = []
+        for name, hour in SLOTS:
+            at = Moment(m.now, hour, m.weekend, m.outdoor, m.preset, m.base)
+            support = self.support(at)
+            confidence = next((level for limit, level in SUPPORT if support >= limit), "none")
+            slots.append({
+                "slot": name,
+                "lean": _lean(self.learned_diff(at)) if confidence != "none" else "open",
+                "confidence": confidence,
+                "settled": self.settled(hour),
+                "now": min(SLOTS, key=lambda s: _hour_distance(s[1], m.hour))[0] == name,
+            })
+        form = self.form(m.now)
+        return {"slots": slots, "today": _lean(form) if abs(form) >= LEAN_SAME else None}
+
     def target(self, m: Moment) -> float:
         """Return the temperature the room should have now, in half degrees."""
         value = m.base + self.learned_diff(m) + self.form(m.now)
         return round(_clamp(value, LOW, HIGH) * 2) / 2
 
-    def feel(self, feeling: str, room: float | None, current: float, m: Moment) -> float:
-        """Take an answer and return the new target."""
+    def feel(self, feeling: str, room: float | None, current: float, m: Moment, special: str | None = None) -> float:
+        """Take an answer and return the new target. A special moment (an open window) is kept but not learned."""
         if feeling not in STEP:
             raise ValueError(feeling)
         # What was felt is the room as it is, unless it is still far from where it is going
         felt = current if room is None or abs(room - current) > 1.0 else room
-        self._take(_clamp(felt + STEP[feeling], LOW, HIGH), m)
+        right = _clamp(felt + STEP[feeling], LOW, HIGH)
+        if special:
+            self._remember(Answer(m.now, m.hour, m.weekend, m.outdoor, m.preset, right - m.base, 0.0, special))
+            self.checking = None
+            return self.target(m)
+        learned = m.base + self.learned_diff(m)
+        unusual = self.support(m) >= UNUSUAL_SUPPORT and abs(right - learned) >= UNUSUAL_K
+        before = {"form": self.day_form, "form_at": self.day_form_at}
+        self._take(right, m)
+        self.checking = {"at": m.now, **before} if unusual else None
         self.last_feeling, self.last_at = feeling, m.now
         self.pending = feeling != "good"
         self.ask_at = None if feeling == "good" and self.settled(m.hour) else m.now
         return self.target(m)
+
+    def explain(self, reason: str, m: Moment) -> bool:
+        """The reason for an unusual answer: normal keeps it, anything else takes it out of what is learned."""
+        check = self.checking
+        self.checking = None
+        if check is None or m.now - check["at"] > CHECK_SEC or not self.answers or self.answers[-1].time != check["at"]:
+            return False
+        if reason == "normal":
+            return True
+        answer = self.answers[-1]
+        answer.weight, answer.reason = 0.0, reason
+        if reason not in KEEP_TODAY:
+            self.day_form, self.day_form_at = check["form"], check["form_at"]
+            self.pending = False
+        return True
+
+    def exceptions(self, count: int = 5) -> list[dict[str, Any]]:
+        """The last answers that do not count, with their reason."""
+        return [{"reason": a.reason, "at": a.time} for a in self.answers if a.reason][-count:][::-1]
 
     def told(self, target: float, m: Moment) -> float:
         """A number said in Thermal Wellbeing counts like a feeling that leads there."""
@@ -212,6 +285,9 @@ class FeelLearner:
             "last_at": self.last_at,
             "showing": self.showing(),
             "asking": self.ask_at is not None,
+            "outlook": self.outlook(m),
+            "checking": self.checking is not None and m.now - self.checking["at"] <= CHECK_SEC,
+            "exceptions": self.exceptions(),
         }
 
     def reset(self) -> None:
@@ -226,4 +302,5 @@ class FeelLearner:
             "last_feeling": self.last_feeling,
             "last_at": self.last_at,
             "pending": self.pending,
+            "checking": self.checking,
         }

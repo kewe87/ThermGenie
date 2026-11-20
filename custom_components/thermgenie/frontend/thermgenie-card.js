@@ -27,6 +27,12 @@ const TEXT = {
     warming: "Getting warmer", holding: "Holding", cooling_t: "Getting cooler", learned: "Learned from {count} answers", noAnswers: "Tell how it feels, it learns from every answer",
     f_cold: "Cold", f_cool: "A bit cool", f_good: "Just right", f_warm: "A bit warm", f_hot: "Too warm", frostWell: "Frost protection",
     lockedShort: "locked", wellbeingHint: "Say how it feels instead of setting degrees",
+    outlook: "What was learned so far", s_morning: "Mornings", s_midday: "Midday", s_evening: "Evenings", s_night: "Late evenings",
+    l_open: "still open", l_same: "as set", l_warmer: "a bit warmer", l_warmer_clear: "clearly warmer", l_cooler: "a bit cooler", l_cooler_clear: "clearly cooler",
+    c_none: "no answer yet", c_low: "first hints", c_medium: "taking shape", c_high: "sure", settledNote: "no longer asks", nowNote: "now",
+    todayLean: "Today {lean} than usual right now, fading out over a few hours.", exceptionsTitle: "Does not count for later",
+    whyAsk: "Usually it feels different here at this time. Is something special going on?",
+    r_sport: "Sport", r_unwell: "Unwell, chilly", r_arrived: "Just got home", r_normal: "No, normal", r_window: "Window open",
   },
   de: {
     off: "Aus", heat: "Heizen", cool: "Kühlen", dry: "Trocknen", fan_only: "Lüfter",
@@ -54,6 +60,12 @@ const TEXT = {
     warming: "Wird wärmer", holding: "Hält", cooling_t: "Wird kühler", learned: "Gelernt aus {count} Rückmeldungen", noAnswers: "Sag, wie es sich anfühlt, jede Antwort lernt mit",
     f_cold: "Kalt", f_cool: "Etwas kühl", f_good: "Passt", f_warm: "Etwas warm", f_hot: "Zu warm", frostWell: "Frostschutz",
     lockedShort: "gesperrt", wellbeingHint: "Sagen, wie es sich anfühlt, statt Grad einzustellen",
+    outlook: "Was bisher gelernt ist", s_morning: "Morgens", s_midday: "Mittags", s_evening: "Abends", s_night: "Spätabends",
+    l_open: "noch offen", l_same: "wie eingestellt", l_warmer: "etwas wärmer", l_warmer_clear: "deutlich wärmer", l_cooler: "etwas kühler", l_cooler_clear: "deutlich kühler",
+    c_none: "noch keine Antwort", c_low: "erste Hinweise", c_medium: "zeichnet sich ab", c_high: "sicher", settledNote: "fragt nicht mehr nach", nowNote: "jetzt",
+    todayLean: "Heute gerade {lean} als sonst, das klingt in ein paar Stunden aus.", exceptionsTitle: "Zählt nicht dauerhaft",
+    whyAsk: "Sonst passt es hier um diese Zeit anders. Ist gerade etwas Besonderes?",
+    r_sport: "Sport", r_unwell: "Krank, fröstelig", r_arrived: "Gerade heimgekommen", r_normal: "Nein, normal", r_window: "Fenster offen",
   },
 };
 
@@ -450,8 +462,11 @@ class ThermGeniePopup extends HTMLElement {
   click(event) {
     const button = event.target.closest("button");
     if (!button) return;
-    const { mode, preset, go, tab, routine, enable, feeling, well } = button.dataset;
-    if (feeling) {
+    const { mode, preset, go, tab, routine, enable, feeling, well, why } = button.dataset;
+    if (why) {
+      haptic();
+      call("explain_feeling", { entity_id: this.entityId, reason: why }, null, "thermgenie");
+    } else if (feeling) {
       feel(this.entityId, feeling);
     } else if (well) {
       haptic();
@@ -630,7 +645,9 @@ class ThermGeniePopup extends HTMLElement {
     const last = state.attributes.feel?.showing;
     const buttons = FEELINGS.map((f) => `<button class="choice feel ${last === f ? "active" : ""}" data-key="feel-${f}" data-feeling="${f}" aria-label="${text(hass, `f_${f}`)}">
         <span class="emoji">${FACES[f]}</span><span>${text(hass, `f_${f}`)}</span></button>`);
-    return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div></section>`;
+    const feel = state.attributes.feel || {};
+    const why = feel.checking ? `<div class="why"><p>${esc(text(hass, "whyAsk"))}</p><div class="chips">${[["sport", "mdi:run"], ["unwell", "mdi:emoticon-sick-outline"], ["arrived", "mdi:door-open"], ["normal", "mdi:check"]].map(([r, i]) => `<button class="chip" data-key="why-${r}" data-why="${r}">${icon(i)}${esc(text(hass, `r_${r}`))}</button>`).join("")}</div></div>` : "";
+    return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div>${why}</section>`;
   }
 
   // Things set now and then, not every day: one quiet block with a picker and a switch
@@ -644,8 +661,20 @@ class ThermGeniePopup extends HTMLElement {
   }
 
   learned(hass, a) {
-    const count = a.feel?.answers || 0;
-    return `<section><h3>${text(hass, "wellbeing")}</h3><p class="hint">${esc(count ? text(hass, "learned", { count }) : text(hass, "noAnswers"))}</p></section>`;
+    const feel = a.feel || {};
+    const count = feel.answers || 0;
+    const head = `<p class="hint">${esc(count ? text(hass, "learned", { count }) : text(hass, "noAnswers"))}</p>`;
+    const outlook = feel.outlook;
+    const rows = (outlook?.slots || []).map((slot) => {
+      const notes = [text(hass, `c_${slot.confidence}`), slot.settled ? text(hass, "settledNote") : ""].filter(Boolean).join(" · ");
+      return `<li class="${slot.now ? "now" : ""} lean-${slot.lean.split("_")[0]}"><span>${esc(text(hass, `s_${slot.slot}`))}${slot.now ? `<em>${esc(text(hass, "nowNote"))}</em>` : ""}</span><b>${esc(text(hass, `l_${slot.lean}`))}</b><small>${esc(notes)}</small></li>`;
+    });
+    const today = outlook?.today ? `<p class="hint">${esc(text(hass, "todayLean", { lean: text(hass, `l_${outlook.today}`) }))}</p>` : "";
+    const reason = (r) => (r?.startsWith("other:") ? r.slice(6) : text(hass, `r_${r}`));
+    const exceptions = (feel.exceptions || []).map((e) => `<li><span>${esc(reason(e.reason))}</span><small>${esc(new Date(e.at * 1000).toLocaleString(hass.locale?.language || "de", { weekday: "short", hour: "2-digit", minute: "2-digit" }))}</small></li>`);
+    return `<section><h3>${text(hass, "wellbeing")}</h3>${head}</section>
+      ${rows.length ? `<section class="s-outlook"><h3>${text(hass, "outlook")}</h3><ul class="outlook">${rows.join("")}</ul>${today}</section>` : ""}
+      ${exceptions.length ? `<section><h3>${text(hass, "exceptionsTitle")}</h3><ul class="exceptions">${exceptions.join("")}</ul></section>` : ""}`;
   }
 
   modes(hass, state) {
@@ -887,6 +916,18 @@ const POPUP_CSS = `
   .feels .choice { --tone: var(--primary-color, #2a78d6); min-height: 78px; padding: 10px 2px 8px; gap: 6px; font-size: 12px; }
   .feels .choice span { white-space: nowrap; }
   .feels .emoji { font-size: 32px; line-height: 1.2; overflow: visible; }
+  .why { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--primary-color, #2a78d6) 10%, transparent); }
+  .why p { margin: 0 0 8px; font-size: 13px; }
+  .outlook, .exceptions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .outlook li { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 9px 12px; border-radius: 12px; background: color-mix(in srgb, var(--primary-text-color) 5%, transparent); }
+  .outlook li.now { box-shadow: inset 0 0 0 1.5px var(--primary-color, #2a78d6); }
+  .outlook span { font-size: 13px; }
+  .outlook em { margin-left: 6px; font-style: normal; font-size: 11px; color: var(--primary-color, #2a78d6); }
+  .outlook b { font-size: 13px; font-weight: 500; text-align: right; }
+  .outlook small { grid-column: 1 / -1; font-size: 11px; color: var(--secondary-text-color); }
+  .outlook .lean-warmer b { color: ${WARM}; } .outlook .lean-cooler b { color: ${COOL}; } .outlook .lean-open b { color: var(--secondary-text-color); }
+  .exceptions li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 2px; border-bottom: 1px solid var(--divider-color, rgba(127, 127, 127, .2)); }
+  .exceptions small { color: var(--secondary-text-color); }
   .s-settings { margin-top: 18px; border-radius: 16px; background: color-mix(in srgb, var(--primary-text-color) 5%, transparent); }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 14px; }
   .row + .row { border-top: 1px solid var(--divider-color, rgba(127, 127, 127, .2)); }

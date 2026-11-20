@@ -589,6 +589,20 @@
           "description": "An für Thermal Wellbeing, aus für das Thermostat."
         }
       }
+    },
+    "explain_feeling": {
+      "name": "Grund einer Antwort",
+      "description": "Ist bei einer ungewöhnlichen Antwort gerade etwas Besonderes? Alles außer normal nimmt sie aus dem Gelernten.",
+      "fields": {
+        "reason": {
+          "name": "Grund",
+          "description": "normal, Sport, krank (zählt nur für heute), gerade heimgekommen, Fenster offen oder etwas anderes."
+        },
+        "note": {
+          "name": "Notiz",
+          "description": "Bei etwas anderem: was war los."
+        }
+      }
     }
   },
   "entity": {

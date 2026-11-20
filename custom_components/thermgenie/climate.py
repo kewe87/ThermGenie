@@ -24,17 +24,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN, UnitOfTemperature
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import entity_platform, entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_platform, entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .comfort import comfort, dew_point, humidex
-from .feel import FEELINGS, Moment, tendency
+from .feel import FEELINGS, REASONS, Moment, tendency
 from .const import (
     DOMAIN,
     ASK_ACTION,
+    REASON_ACTION,
     COMMAND_TIMEOUT_SEC,
     CHILD_LOCK_SUFFIX,
     EXTERNAL_ALIVE_SEC,
@@ -167,6 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform.async_register_entity_service("set_routine", {vol.Required("routine"): vol.In(ROUTINE_NAMES), vol.Required("enabled"): bool}, "async_set_routine")
     platform.async_register_entity_service("feel", {vol.Required("feeling"): vol.In(FEELINGS)}, "async_feel")
     platform.async_register_entity_service("set_wellbeing", {vol.Required("enabled"): bool}, "async_set_wellbeing")
+    platform.async_register_entity_service("explain_feeling", {vol.Required("reason"): vol.In((*REASONS, "normal")), vol.Optional("note"): cv.string}, "async_explain_feeling")
 
 
 def _as_float(state: Any) -> float | None:
@@ -487,6 +489,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if valves := list(self.conf.get(CONF_VALVES, {}).values()):
             self.async_on_remove(async_track_state_change_event(self.hass, valves, self._on_valve))
         self.async_on_remove(self.hass.bus.async_listen("mobile_app_notification_action", self._on_push_answer))
+        self.async_on_remove(self.hass.bus.async_listen("mobile_app_notification_action", self._on_push_reason))
         self.routines.start()
         self.lock.start()
         self.hass.async_create_task(self._async_first_run())
@@ -978,13 +981,42 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         """Take how it feels in the room. In the thermostat mode it moves the setpoint."""
         self._refuse_when_locked(self.profile)
         m = self._moment()
-        target = self.runtime.feel.feel(feeling, self._reference(self.profile), self.active_target, m)
+        # With the window open a feeling says nothing about the room: kept, not learned
+        special = "window" if self._window_open else None
+        target = self.runtime.feel.feel(feeling, self._reference(self.profile), self.active_target, m, special)
+        if self.runtime.feel.checking is not None:
+            self.hass.async_create_task(self._async_ask_reason())
         if not self.wellbeing:
             self._profiles[self.profile] = {"target": target, "preset": PRESET_NONE, "base": target}
             self.routines.preset_changed(PRESET_NONE)
         self._reached_since = None
         self._save_learned()
         await self._async_regulate(force=True)
+
+    async def async_explain_feeling(self, reason: str, note: str | None = None) -> None:
+        """Why the last answer was unusual. Anything but normal keeps it out of what is learned."""
+        if reason == "other" and note:
+            reason = f"other:{note.strip()[:60]}"
+        if not self.runtime.feel.explain(reason, self._moment()):
+            self.async_write_ha_state()
+            return
+        if reason != "normal":
+            await self.async_log(say(self.hass, "feel_reason", reason=self._reason_text(reason)))
+        self._save_learned()
+        await self._async_regulate(force=True)
+
+    def _reason_text(self, reason: str) -> str:
+        if reason.startswith("other:"):
+            return reason[6:]
+        return say(self.hass, f"why_{reason}")
+
+    async def _async_ask_reason(self) -> None:
+        await self.async_ask(
+            say(self.hass, "feel_why_title", name=self.room),
+            say(self.hass, "feel_why_body"),
+            [*({"action": f"{REASON_ACTION}{r}_{self._entry.entry_id}", "title": say(self.hass, f"why_btn_{r}")} for r in ("sport", "unwell", "arrived", "normal")),
+             {"action": f"{REASON_ACTION}other_{self._entry.entry_id}", "title": say(self.hass, "why_btn_other"), "behavior": "textInput", "textInputButtonTitle": say(self.hass, "why_send")}],
+        )
 
     async def async_set_wellbeing(self, enabled: bool) -> None:
         """Switch between Thermal Wellbeing and the thermostat. The room does not jump either way."""
@@ -1014,8 +1046,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             self._reached_since = self._reached_since or now
         else:
             self._reached_since = None
-        if not feel.due(now, self._reached_since):
-            return
+        if not feel.due(now, self._reached_since) or self._window_open:
+            return  # with the window open the answer would say nothing about the room, ask once it is closed
         feel.asked()
         self._save_learned()
         self.hass.bus.async_fire(f"{DOMAIN}_ask", {"entity_id": self.entity_id, "room": self.room})
@@ -1030,7 +1062,16 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if feeling in FEELINGS:
             await self.async_feel(feeling)
 
-    async def async_ask(self, title: str, message: str) -> None:
+    async def _on_push_reason(self, event: Event) -> None:
+        """A button of the follow-up question was tapped, or something was written."""
+        action = str(event.data.get("action", ""))
+        if not action.startswith(REASON_ACTION) or not action.endswith(f"_{self._entry.entry_id}"):
+            return
+        reason = action[len(REASON_ACTION):-len(self._entry.entry_id) - 1]
+        if reason in (*REASONS, "normal"):
+            await self.async_explain_feeling(reason, event.data.get("reply_text"))
+
+    async def async_ask(self, title: str, message: str, actions: list[dict] | None = None) -> None:
         """Push the question with one button per feeling, only to someone at home without a focus mode."""
         presence = self.conf.get(CONF_PRESENCE)
         quiet = self.conf.get(CONF_QUIET)
@@ -1038,7 +1079,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return
         if quiet and self.hass.states.is_state(quiet, STATE_ON):
             return
-        actions = [{"action": f"{ASK_ACTION}{feeling}_{self._entry.entry_id}", "title": say(self.hass, f"feel_{feeling}")} for feeling in FEELINGS]
+        actions = actions or [{"action": f"{ASK_ACTION}{feeling}_{self._entry.entry_id}", "title": say(self.hass, f"feel_{feeling}")} for feeling in FEELINGS]
         await self.async_notify(title, message, extra={"actions": actions})
 
     # Messages

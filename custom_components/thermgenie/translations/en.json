@@ -589,6 +589,20 @@
           "description": "On for Thermal Wellbeing, off for the thermostat."
         }
       }
+    },
+    "explain_feeling": {
+      "name": "Reason of an answer",
+      "description": "Is something special going on after an unusual answer? Anything but normal takes it out of what is learned.",
+      "fields": {
+        "reason": {
+          "name": "Reason",
+          "description": "normal, sport, unwell (counts for today only), just got home, window open or something else."
+        },
+        "note": {
+          "name": "Note",
+          "description": "For something else: what was going on."
+        }
+      }
     }
   },
   "entity": {

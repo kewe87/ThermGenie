@@ -37,6 +37,13 @@ from .const import (
     ASK_ACTION,
     COMMAND_TIMEOUT_SEC,
     CHILD_LOCK_SUFFIX,
+    EXTERNAL_ALIVE_SEC,
+    EXTERNAL_CHANGE,
+    EXTERNAL_LOCAL,
+    EXTERNAL_REMOTE,
+    EXTERNAL_SUFFIX,
+    SAFETY_MARGIN,
+    SENSOR_SELECT_SUFFIX,
     HOLD_WAIT_SEC,
     KNOB_FAR,
     KNOB_WAIT_SEC,
@@ -142,6 +149,10 @@ class Device:
     opening: str | None = None  # valve control: number entity of the valve opening, None in setpoint mode
     valve: float | None = None  # valve control: wanted opening, None hands the valve back to the device
     regulated: bool = False  # valve control: the room plan decides the opening
+    external: str | None = None  # safety net: number entity that takes the room temperature into the device
+    sensor_select: str | None = None  # safety net: select entity of the temperature source of the device
+    external_sent: float | None = None
+    external_sent_at: datetime | None = None
 
     @property
     def closing(self) -> str | None:
@@ -458,6 +469,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         """Restore the state and start listening."""
         await super().async_added_to_hass()
         self._restore(await self.async_get_last_state())
+        self._find_safety_net()
         self._read_window()
         self._enforce_modes()
 
@@ -1101,22 +1113,70 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 wanted = self._wanted(device, state, now, force)
                 await self._async_send(device, state, wanted)
                 await self._async_fan(device, state, wanted)
+            await self._async_feed_room_temperature(now)  # first, so the device judges on the room and not on its radiator
             await self._async_valve_control(now, force)
             await self._async_child_locks()
         self.async_write_ha_state()
 
     # Child lock
 
-    def _child_lock_of(self, device: Device) -> str | None:
-        """Return the child lock switch of the device a thermostat belongs to."""
+    def _sibling(self, device: Device, domain: str, suffix: str) -> str | None:
+        """Return an entity of the device a thermostat belongs to."""
         registry = er.async_get(self.hass)
         entry = registry.async_get(device.entity_id)
         if entry is None or entry.device_id is None:
             return None
         for other in er.async_entries_for_device(registry, entry.device_id):
-            if other.domain == "switch" and other.entity_id.endswith(CHILD_LOCK_SUFFIX):
+            if other.domain == domain and other.entity_id.endswith(suffix):
                 return other.entity_id
         return None
+
+    def _child_lock_of(self, device: Device) -> str | None:
+        return self._sibling(device, "switch", CHILD_LOCK_SUFFIX)
+
+    # Safety net
+
+    def _find_safety_net(self) -> None:
+        """A valve under valve control that takes an outside temperature gets the room temperature as well.
+
+        Should Home Assistant stop, the valve stays where it was. With the room temperature
+        and a setpoint a little above the target the device closes on its own once the room
+        gets too warm, and after two hours without news it goes on with its own sensor.
+        """
+        for device in self._devices:
+            if device.opening:
+                device.external = self._sibling(device, "number", EXTERNAL_SUFFIX)
+                device.sensor_select = self._sibling(device, "select", SENSOR_SELECT_SUFFIX) if device.external else None
+
+    async def _async_feed_room_temperature(self, now: datetime) -> None:
+        """Send the room temperature on a change and as a sign of life, never more often than that, for the battery."""
+        room = None if self._sensor_stale else self.real_temperature()
+        if room is None:
+            return  # without news the device goes back to its own sensor by itself
+        room = round(room, 1)
+        for device in self._devices:
+            if not device.external or self._device_state(device) is None:
+                continue
+            due = device.external_sent_at is None or (now - device.external_sent_at).total_seconds() >= EXTERNAL_ALIVE_SEC
+            if due or device.external_sent is None or abs(room - device.external_sent) >= EXTERNAL_CHANGE:
+                try:
+                    await self._async_number(device.external, room)
+                    device.external_sent, device.external_sent_at = room, now
+                except (HomeAssistantError, TimeoutError) as err:
+                    _LOGGER.warning("%s: room temperature to %s failed: %s", self.entity_id, device.external, err)
+                    continue
+            await self._async_use_room_temperature(device)
+
+    async def _async_use_room_temperature(self, device: Device) -> None:
+        """Have the device judge on the room temperature, only a state read unless it still uses its own sensor."""
+        select = self.hass.states.get(device.sensor_select) if device.sensor_select else None
+        if select is None or select.state != EXTERNAL_LOCAL or device.external_sent is None:
+            return
+        try:
+            async with asyncio.timeout(COMMAND_TIMEOUT_SEC):
+                await self.hass.services.async_call("select", "select_option", {ATTR_ENTITY_ID: device.sensor_select, "option": EXTERNAL_REMOTE}, blocking=True)
+        except (HomeAssistantError, TimeoutError) as err:
+            _LOGGER.warning("%s: temperature source of %s failed: %s", self.entity_id, device.entity_id, err)
 
     async def _async_child_locks(self) -> None:
         """In the thermostat mode and under a heating lock the knob is locked, in Thermal Wellbeing it is an answer."""
@@ -1172,7 +1232,12 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         The TRV moves to the opening degree while it wants heat and to 100 minus the
         closing degree while it does not, so with both set the valve stays where we want it.
         """
-        values = (100.0, 100.0) if opening is None else (opening, 100.0 - opening)
+        if opening is None:
+            values = (100.0, 100.0)
+        elif device.external:
+            values = (opening, 100.0)  # safety net: closed whenever the device itself finds the room warm enough
+        else:
+            values = (opening, 100.0 - opening)
         for entity, value in zip((device.opening, device.closing), values):
             state = self.hass.states.get(entity)
             if state is None or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
@@ -1241,10 +1306,11 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if room is None:  # sensor gone: the device regulates on its own sensor
             return self._fit(target, state)
         if device.opening:
-            # Valve control: the device keeps the target as a fallback, the valve follows the room plan
+            # Valve control: the device keeps the target as a fallback, the valve follows the room plan.
+            # With the safety net the device only steps in when the room is clearly too warm.
             device.last_run = None
             device.regulated = True
-            return self._fit(target, state)
+            return self._fit(target + (SAFETY_MARGIN if device.external else 0.0), state)
 
         periods = 1.0
         if device.last_run is not None:

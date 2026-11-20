@@ -64,6 +64,13 @@ selbst. Bei offenem Fenster, ausgeschalteter Heizung oder warmem Tag schließt d
 Ventilsteuerung bleiben im Sollwert-Betrieb, beide Arten lassen sich in einem Raum mischen. Eingerichtet wird es unter
 *Einstellungen → Direktsteuerung*, die Ventil-Entitäten werden am Gerät erkannt.
 
+Nimmt das Thermostat eine Raumtemperatur von außen an (beim TRVZB *Externe Temperatur*), bekommt es zusätzlich ein
+Sicherheitsnetz für den Fall, dass Home Assistant ausfällt: ThermGenie schickt ihm die Raumtemperatur, bei einer
+Änderung ab 0,3 °C und sonst einmal pro Stunde, und stellt seinen Sollwert 2 °C über das Ziel. Im Alltag führt
+ThermGenie das Ventil, das Thermostat schließt nur, wenn der Raum deutlich zu warm wird. Schweigt Home Assistant,
+schließt es dann selbst, und nach zwei Stunden ohne neue Werte regelt es mit seinem eigenen Fühler weiter. Die seltenen
+Werte kosten kaum Batterie.
+
 ### Thermal Wellbeing: nach Gefühl statt nach Zahl
 
 Jeder Raum lässt sich zwischen *Thermostat* und *Thermal Wellbeing* umschalten, unten im Popup, mit dem Schalter

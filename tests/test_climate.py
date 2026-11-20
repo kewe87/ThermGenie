@@ -1068,3 +1068,43 @@ async def test_the_knob_is_locked_in_the_thermostat_mode_and_free_in_wellbeing(h
     await hass.async_block_till_done()
     assert switched[-1] == ("turn_off", "switch.wz_child_lock"), switched
     assert hass.states.get("switch.wz_child_lock").state == "off"
+
+
+async def test_safety_net_gives_the_valve_the_room_temperature_and_a_setpoint_above_the_target(hass, radio):
+    registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    config = MockConfigEntry(domain="mqtt")
+    config.add_to_hass(hass)
+    trv = device_registry.async_get_or_create(config_entry_id=config.entry_id, identifiers={("mqtt", "trv")})
+    registry.async_get_or_create("climate", "mqtt", "wz", suggested_object_id="wz", device_id=trv.id)
+    registry.async_get_or_create("number", "mqtt", "wz_open", suggested_object_id="wz_valve_opening_degree", device_id=trv.id)
+    registry.async_get_or_create("number", "mqtt", "wz_ext", suggested_object_id="wz_external_temperature_input", device_id=trv.id)
+    registry.async_get_or_create("select", "mqtt", "wz_src", suggested_object_id="wz_temperature_sensor_select", device_id=trv.id)
+    devices(hass)
+    valves(hass)
+    hass.states.async_set("number.wz_external_temperature_input", "0")
+    hass.states.async_set("select.wz_temperature_sensor_select", "local_temperature")
+    hass.states.async_set(SENSOR, "19.04")
+    await setup(hass, valve_control={WZ: OPEN_WZ})
+    chosen = []
+
+    async def _select(call: ServiceCall):
+        chosen.append(call.data["option"])
+        hass.states.async_set("select.wz_temperature_sensor_select", call.data["option"])
+
+    hass.services.async_register("select", "select_option", _select)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    assert radio.numbers("number.wz_external_temperature_input")[-1] == 19.0
+    assert chosen == ["remote_temperature"]
+    opening = radio.numbers(OPEN_WZ)[-1]
+    assert opening > 0
+    assert radio.numbers(CLOSE_WZ)[-1] == 100.0  # closed whenever the device finds the room warm enough
+    assert radio.setpoints(WZ)[-1] == 22.5  # the target with its offset and the safety margin
+    # A small change is not worth the radio, a larger one is
+    sent = len(radio.numbers("number.wz_external_temperature_input"))
+    hass.states.async_set(SENSOR, "19.1")
+    await service(hass, "set_temperature", temperature=21.5)
+    assert len(radio.numbers("number.wz_external_temperature_input")) == sent
+    hass.states.async_set(SENSOR, "19.5")
+    await service(hass, "set_temperature", temperature=21.0)
+    assert radio.numbers("number.wz_external_temperature_input")[-1] == 19.5

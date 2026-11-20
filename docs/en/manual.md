@@ -262,6 +262,12 @@ own. With an open window, heating off or a warm day the valve closes. Radiators 
 mode, and both kinds can be mixed in one room. It is set up under *Settings → Direct drive*, the valve entities are
 found on the device.
 
+If the thermostat takes a room temperature from outside (on the TRVZB *External temperature*), it also gets a safety
+net for the case Home Assistant stops: ThermGenie sends it the room temperature, on a change of 0.3 °C or more and else
+once an hour, and sets its setpoint 2 °C above the target. Day to day ThermGenie drives the valve, the thermostat only
+closes when the room gets clearly too warm. Should Home Assistant go silent, it closes on its own, and after two hours
+without new values it goes on with its own sensor. The rare values cost hardly any battery.
+
 **Values of the sensor:** `control` tells who regulates (`pi` learning regulator, `model` the model, `closed` closed,
 `device` the thermostat itself). `heating_power`, `heat_loss` and `delay_min` describe the room, `fit_k_per_h` how well
 the model predicts, `curve` the opening needed per outdoor temperature at the current target. *Reset learning* also

@@ -85,6 +85,14 @@ CONF_VALVE_CONTROL = "valve_control"  # radiator -> its valve opening number, dr
 OPENING_SUFFIX = "valve_opening_degree"
 CLOSING_SUFFIX = "valve_closing_degree"
 CHILD_LOCK_SUFFIX = "child_lock"  # the knob of a thermostat is locked in the thermostat mode and free in Thermal Wellbeing
+# Safety net of a valve under valve control: the device gets the room temperature and a setpoint a little above the target
+EXTERNAL_SUFFIX = "external_temperature_input"
+SENSOR_SELECT_SUFFIX = "temperature_sensor_select"
+EXTERNAL_LOCAL = "local_temperature"
+EXTERNAL_REMOTE = "remote_temperature"
+EXTERNAL_CHANGE = 0.3  # K, a smaller change is not worth the radio
+EXTERNAL_ALIVE_SEC = 60 * 60  # sign of life, the device goes back to its own sensor after two hours without news
+SAFETY_MARGIN = 2.0  # K above the target the device closes on its own
 
 CONF_GUARD_SENSOR = "guard_sensor"
 CONF_GUARD_ABOVE = "guard_above"

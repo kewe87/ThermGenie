@@ -39,6 +39,7 @@ SOFT = 0.4  # a setpoint changed by hand counts this much of an answer
 TENDENCY_BAND = 0.45  # K, a room this far from its target is warming or cooling
 TENDENCY_KEEP = 0.15  # K, and keeps doing so until this close, so a sensor flickering by 0.1 K does not flip it
 SHOW_MIN_SEC = 15 * 60  # the face of an answer stays at least this long, then until the room got there
+SHOW_MAX_SEC = 2 * 3600  # no further word means it fits: the face goes neutral after this at the latest
 CORRECTION_SEC = 120  # an answer this soon after the last one corrects it instead of adding to it
 # The outlook: what the answers so far say about the times of the day, in words
 SLOTS = (("morning", 7.5), ("midday", 12.5), ("evening", 19.0), ("night", 22.5))
@@ -263,9 +264,12 @@ class FeelLearner:
             return True
         return reached_since is not None and reached_since >= self.ask_at and (now - reached_since) / 60 >= ASK_AFTER_MIN
 
-    def arrived(self, now: float) -> bool:
-        """The room got where the last answer sent it: the face goes back to neutral. Return whether it changed."""
+    def arrived(self, now: float, done: bool = True) -> bool:
+        """The room got where the last answer sent it, or nothing more can be done, or no further word came:
+        the face goes back to neutral. Return whether it changed."""
         if not self.pending or self.last_at is None or now - self.last_at < SHOW_MIN_SEC:
+            return False
+        if not done and now - self.last_at < SHOW_MAX_SEC:
             return False
         self.pending = False
         return True

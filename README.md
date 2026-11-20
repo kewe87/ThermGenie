@@ -109,8 +109,9 @@ Ist gerade etwas Besonderes? Zur Wahl stehen Sport, krank, gerade heimgekommen, 
 ThermGenie den Alltag und nicht die Ausnahmen.
 
 **Was man sieht.** Statt einer Zahl zeigt die Karte ein Gesicht und eine Tendenz: wird wärmer, hält oder wird kühler,
-auch als Sensor *Tendenz*. Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist, dann ist
-es wieder neutral. Unter *Details* steht in Worten, was bisher gelernt ist: für morgens, mittags, abends und
+auch als Sensor *Tendenz*. Das Gesicht der letzten Antwort bleibt stehen, bis der Raum dort angekommen ist oder die
+Geräte nichts mehr tun können, etwa wenn ein zu warmer Raum ohne Klimagerät nur auskühlen kann. Spätestens nach zwei
+Stunden ohne weitere Antwort ist es wieder neutral: Wer sich nicht mehr meldet, ist zufrieden. Unter *Details* steht in Worten, was bisher gelernt ist: für morgens, mittags, abends und
 spätabends, ob es wärmer oder kühler als eingestellt sein soll, wie sicher das schon ist und wo ThermGenie nicht mehr
 nachfragt. Darunter stehen die Antworten, die wegen eines besonderen Grunds nicht dauerhaft zählen.
 

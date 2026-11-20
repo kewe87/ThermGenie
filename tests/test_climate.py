@@ -1031,6 +1031,26 @@ async def test_wellbeing_asks_by_push_and_takes_the_answer(hass, radio):
     assert hass.states.get("sensor.wohnbereich_feeling").state == "cold"
 
 
+async def test_the_face_goes_neutral_when_the_radiators_cannot_do_more(hass, radio):
+    devices(hass)
+    entry = await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    hass.states.async_set(SENSOR, "22.5")  # warmed by the sun, the radiators are shut
+    await hass.services.async_call("thermgenie", "feel", {"entity_id": ENTITY, "feeling": "warm"}, blocking=True)
+    await hass.async_block_till_done()
+    for heater in (WZ, KU):
+        hass.states.async_set(heater, "heat", {**hass.states.get(heater).attributes, "hvac_action": "idle"})
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["feel"]["showing"] == "warm"
+    climate = entry.runtime_data.climate
+    assert climate.tendency == "cooling"
+    with patch("homeassistant.util.dt.utcnow", return_value=dt_util.utcnow() + timedelta(minutes=20)):
+        await climate._async_ask_feeling()
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["feel"]["showing"] is None
+
+
 async def test_wellbeing_takes_a_turn_of_the_knob_as_an_answer(hass, radio):
     devices(hass)
     await setup(hass)

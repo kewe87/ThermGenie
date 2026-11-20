@@ -1032,10 +1032,18 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.wellbeing = enabled
         await self._async_regulate(force=True)
 
+    def _feel_done(self) -> bool:
+        """The room got there, or the devices already do all they can: a radiator that is shut cannot cool."""
+        tendency = self.tendency
+        if tendency == "holding":
+            return True
+        action = self.hvac_action
+        return (tendency == "cooling" and action != HVACAction.COOLING) or (tendency == "warming" and action != HVACAction.HEATING)
+
     async def _async_ask_feeling(self) -> None:
         """Ask how it feels once the room got where the last answer sent it."""
         feel = self.runtime.feel
-        if self.tendency == "holding" and feel.arrived(dt_util.utcnow().timestamp()):
+        if feel.arrived(dt_util.utcnow().timestamp(), self._feel_done()):
             self._save_learned()
             self.async_write_ha_state()
         if not self.wellbeing or self._mode == HVACMode.OFF or feel.ask_at is None:

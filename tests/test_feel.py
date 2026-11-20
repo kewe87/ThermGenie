@@ -171,3 +171,20 @@ def test_an_answer_with_the_window_open_is_kept_but_not_learned():
     assert learner.learned_diff(m) == 0.0
     assert learner.exceptions()[0]["reason"] == "window"
     assert learner.status(m)["answers"] == 0
+
+
+def test_no_further_word_means_it_fits_the_face_goes_neutral_after_two_hours():
+    learner = FeelLearner()
+    m = Moment(now=1000.0, hour=12.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=21.0)
+    learner.feel("warm", 22.4, 21.0, m)  # a heating-only room that cannot get cooler on its own
+    assert not learner.arrived(1000.0 + 3600, done=False)
+    assert learner.status(m)["showing"] == "warm"
+    assert learner.arrived(1000.0 + 2 * 3600 + 60, done=False)
+    assert learner.status(m)["showing"] is None
+
+
+def test_the_face_goes_neutral_once_the_devices_do_all_they_can():
+    learner = FeelLearner()
+    m = Moment(now=1000.0, hour=12.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=21.0)
+    learner.feel("warm", 22.4, 21.0, m)
+    assert learner.arrived(1000.0 + 20 * 60, done=True)

@@ -309,7 +309,9 @@ own to type in, or "all normal". With a special reason the answer does not count
 This way ThermGenie learns the everyday and not the exceptions.
 
 **What you see.** Instead of a number the card shows a face and a tendency: getting warmer, holding or getting cooler,
-also as the sensor *Tendency*. The face of the last answer stays until the room got there, then it is neutral again.
+also as the sensor *Tendency*. The face of the last answer stays until the room got there or the devices cannot do more,
+for example when a room that is too warm and has no air conditioner can only cool down by itself. After two hours
+without a further answer it is neutral at the latest: no further word means it fits.
 *Details* tells in words what was learned so far: for mornings, midday, evenings and late evenings, whether it should be
 warmer or cooler than set, how sure that is already and where ThermGenie no longer asks. Below are the answers that do
 not count for later because of a special reason.

@@ -87,8 +87,12 @@ def _always(conf: Conf) -> bool:
 
 
 def heating(conf: Conf) -> bool:
-    """A locked room does not heat, its heating has nothing to set. Its lock stays in the settings menu."""
+    """A locked room does not heat, its heating has nothing to set."""
     return bool(conf.get(CONF_HEATERS)) and not conf.get(CONF_LOCK)
+
+
+def _radiators(conf: Conf) -> bool:
+    return bool(conf.get(CONF_HEATERS))
 
 
 def _one_heater(conf: Conf) -> bool:
@@ -184,6 +188,8 @@ HEATER_OFFSET = Setting("heater_offset", low=-3, high=3, step=0.1, unit="K")
 HEATER_KD = Setting("heater_kd", high=3, step=0.1)
 
 SWITCHES = (
+    # The heating lock sets the thermostat up anew, the lock watches the valves from the start
+    Setting(CONF_LOCK, _radiators, reload=True),
     # A locked room always holds its devices, there is nothing to choose
     Setting(CONF_HOLD_DEVICES, lambda conf: not conf.get(CONF_LOCK)),
     Setting(CONF_WAKE_FALLBACK_ON, _alarm),

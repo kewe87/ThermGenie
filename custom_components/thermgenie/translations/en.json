@@ -887,6 +887,9 @@
       },
       "wellbeing": {
         "name": "Thermal Wellbeing"
+      },
+      "lock_enabled": {
+        "name": "Heating lock"
       }
     },
     "time": {

@@ -201,8 +201,8 @@ automations. Changes take effect immediately, and the controller keeps its state
 | **Configuration** | Heat source, optimization of the regulation, regulation on real temperature, humidex or comfort temperature, preset temperatures, offset and brake per heating device, limits, times, routines. Controller parameters start disabled and can be enabled when needed. |
 | **Diagnostic** | Setpoint per device, reason for a block, next heating up, sensor failure, stuck valve, learned values, optimization status |
 
-Entity assignments and the heating lock are managed under *Configure*. The heating lock is deliberately not available
-as an entity, so that it cannot be lifted through dashboards or voice assistants.
+Entity assignments are managed under *Configure*. The heating lock is a switch among the settings of the device. Like
+all settings it is not exposed to voice assistants by itself.
 
 ## Installation
 

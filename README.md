@@ -204,8 +204,8 @@ Automationen verwenden. Änderungen wirken sofort, der Regler behält dabei sein
 | **Konfiguration** | Heizquelle, Optimierung der Regelung, Regelung nach echter Temperatur, Humidex oder gefühlter Temperatur, Profiltemperaturen, Versatz und Bremse je Heizgerät, Grenzwerte, Zeiten, Automatiken. Reglerparameter sind zunächst deaktiviert und lassen sich bei Bedarf einschalten. |
 | **Diagnose** | Stellwert je Gerät, Sperrgrund, nächstes Aufheizen, Fühlerausfall, klemmendes Ventil, Lernwerte, Stand der Optimierung |
 
-Die Zuordnung der Entitäten und die Heizsperre werden unter *Konfigurieren* vorgenommen. Die Heizsperre ist bewusst
-nicht als Entität verfügbar, damit sie sich nicht über Dashboards oder Sprachassistenten aufheben lässt.
+Die Zuordnung der Entitäten wird unter *Konfigurieren* vorgenommen. Die Heizsperre ist ein Schalter unter den
+Einstellungen des Geräts. Wie alle Einstellungen wird er Sprachassistenten nicht von selbst freigegeben.
 
 ## Installation
 

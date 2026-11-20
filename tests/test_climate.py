@@ -548,6 +548,19 @@ async def test_a_locked_room_offers_nothing_about_its_heating(hass, radio):
     assert "cool_comfort" in entities
 
 
+async def test_the_heating_lock_is_a_switch_on_the_device_page(hass, radio):
+    devices(hass)
+    entry = await setup(hass, lock_enabled=True)
+    switch = _config_entities(hass, entry)["lock_enabled"].entity_id
+    assert hass.states.get(switch).state == "on"
+    assert hass.states.get(ENTITY).attributes["heat_lock"] is True
+    await hass.services.async_call("switch", "turn_off", {"entity_id": switch}, blocking=True)
+    await hass.async_block_till_done()
+    assert entry.options["lock_enabled"] is False
+    assert hass.states.get(ENTITY).attributes["heat_lock"] is False
+    assert "heat_comfort" in _config_entities(hass, entry)
+
+
 async def test_a_changed_setting_applies_without_a_new_setup(hass, radio):
     devices(hass)
     entry = await setup(hass)

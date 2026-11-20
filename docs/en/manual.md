@@ -434,8 +434,9 @@ A running heating is not affected. The logbook shows every pass with all values.
 
 ### Heating lock
 
-For rooms that should not be heated. It is switched on under *Configure → Heating lock* and is deliberately not an entity, so that it
-cannot be lifted through dashboards or voice assistants.
+For rooms that should not be heated. It is switched with the switch *Heating lock* among the settings of the device or
+under *Configure → Heating lock*. Like all settings the switch is not exposed to voice assistants by itself. Switching it
+restarts the thermostat.
 
 **Heating is refused**, whether from a card, an automation or a voice assistant. Off and cool remain possible. The **devices are always
 held** (see below).

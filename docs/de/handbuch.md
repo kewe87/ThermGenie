@@ -438,8 +438,9 @@ und aus. Eine laufende Heizung bleibt davon unberührt. Das Logbuch zeigt jeden 
 
 ### Heizsperre
 
-Für Räume, die nicht beheizt werden sollen. Sie wird unter *Konfigurieren → Heizsperre* eingeschaltet und ist bewusst keine
-Entität, damit sie sich nicht über Dashboards oder Sprachassistenten aufheben lässt.
+Für Räume, die nicht beheizt werden sollen. Sie wird mit dem Schalter *Heizsperre* unter den Einstellungen des Geräts
+oder unter *Konfigurieren → Heizsperre* geschaltet. Wie alle Einstellungen wird der Schalter Sprachassistenten nicht von
+selbst freigegeben. Beim Umschalten startet das Thermostat neu.
 
 **Heizen wird abgelehnt**, egal ob von Karte, Automation oder Sprachassistent. Aus und Kühlen bleiben möglich. Die
 **Geräte werden immer gehalten** (siehe unten).

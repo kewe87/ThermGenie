@@ -499,6 +499,12 @@ Steht das Ventil dann mindestens auf *Ventil gilt als offen ab* (Standard 5 %), 
 gibt es eine dringende Meldung. Der Binärsensor *Ventil schließt nicht* wird aktiv. Schließt das Ventil, wird er wieder inaktiv
 und das Logbuch vermerkt dies.
 
+Auch ohne Ventilsensor achtet ThermGenie auf den **Raum selbst**: Heizt seit 45 Minuten nichts und wird es trotzdem stetig wärmer
+(mindestens 0,7 °C in 45 Minuten und noch steigend), steht vermutlich ein Ventil offen, obwohl es „zu“ meldet, etwa nach einem
+Firmware-Update oder Reset eines Thermostats, das dabei seine Kalibrierung verloren hat. Dann kommt eine dringende Meldung, und
+*Ventil schließt nicht* wird aktiv (Eintrag `room`). Nachwärme, die nach einer halben Stunde abflacht, Duschen (die Luftfeuchte steigt mit)
+und Sprünge des Sensors lösen nichts aus. Sinkt die Temperatur wieder, ist die Warnung vorbei.
+
 Ein Ventil, das nur über seinem Stellwert noch offen steht, gilt nicht als Fehler: Thermostatventile schließen oft erst einige Kelvin
 darüber. Bekommen Sie trotzdem Warnungen, obwohl alles in Ordnung ist, erhöhen
 Sie die Grenze oder die Wartezeit. In einem Raum mit Heizsperre löst ein offenes Ventil die Sperre aus.

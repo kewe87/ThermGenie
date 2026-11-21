@@ -16,6 +16,12 @@ _TEXTS: dict[str, tuple[str, str]] = {
         "{device} sollte zu sein, das Ventil steht seit {minutes} Minuten noch auf {valve} %.",
         "{device} should be closed, its valve has been at {valve} % for {minutes} minutes.",
     ),
+    "room_watch_title": ("{name}: wird warm, obwohl nicht geheizt wird", "{name}: getting warmer although nothing heats"),
+    "room_watch_body": (
+        "Seit {minutes} Minuten heizt hier nichts, trotzdem ist es um {rise} °C wärmer geworden. Vermutlich steht ein Ventil offen, obwohl es zu meldet, z. B. nach einem Firmware-Update oder Neustart des Thermostats. Bitte am Heizkörper prüfen.",
+        "Nothing has heated here for {minutes} minutes, yet it got {rise} °C warmer. Probably a valve is open although it reports closed, e.g. after a firmware update or reset of the thermostat. Please check the radiator.",
+    ),
+    "room_watch_ok": ("Der Raum wird nicht mehr wärmer.", "The room is no longer getting warmer."),
     "valve_watch_ok": ("{device}: Das Ventil ist wieder zu oder darf offen sein.", "{device}: the valve is closed again or may be open."),
     "tuning_step": ("Regelung angepasst: {reason}. Jetzt kp {kp}, ki {ki}.", "Regulation adjusted: {reason}. Now kp {kp}, ki {ki}."),
     "tuning_proposal": ("Vorschlag zur Regelung: {reason}. Empfohlen sind kp {kp}, ki {ki}.", "Suggestion for the regulation: {reason}. Recommended are kp {kp}, ki {ki}."),

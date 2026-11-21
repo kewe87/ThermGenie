@@ -493,6 +493,12 @@ A radiator **should be closed** if it is off or ThermGenie shuts it because the 
 *A valve counts as open from* (default 5 %), for as long as *Warn after* (default 30 minutes), you receive an urgent message. The binary
 sensor *Valve does not close* becomes active. When the valve closes, it becomes inactive again and the logbook notes this.
 
+Even without a valve sensor ThermGenie watches the **room itself**: if nothing has heated for 45 minutes and it still gets warmer steadily
+(at least 0.7 °C in 45 minutes and still rising), a valve is probably open although it reports closed, for example after a firmware update
+or reset of a thermostat that lost its calibration. You get an urgent message and *Valve does not close* becomes active (entry `room`).
+After-heat that flattens within half an hour, a shower (humidity rises with it) and sensor jumps do not trigger it. When the room cools
+again, the warning ends.
+
 A valve that is merely open above its setpoint does not count as a fault: radiator thermostats often close only some kelvin above it. If
 you still get warnings although everything is fine, raise
 the limit or the waiting time. In a room with a heating lock, an open valve triggers the lock.

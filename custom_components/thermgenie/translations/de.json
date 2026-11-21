@@ -596,7 +596,7 @@
       "fields": {
         "reason": {
           "name": "Grund",
-          "description": "normal, Sport, krank (zählt nur für heute), gerade heimgekommen, Fenster offen oder etwas anderes."
+          "description": "normal, Sport, krank oder Besuch (zählen nur für heute), gerade heimgekommen, Fenster offen oder etwas anderes."
         },
         "note": {
           "name": "Notiz",

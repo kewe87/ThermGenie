@@ -69,6 +69,7 @@ explain_feeling:
             - normal
             - sport
             - unwell
+            - guests
             - arrived
             - window
             - other

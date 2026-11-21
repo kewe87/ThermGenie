@@ -596,7 +596,7 @@
       "fields": {
         "reason": {
           "name": "Reason",
-          "description": "normal, sport, unwell (counts for today only), just got home, window open or something else."
+          "description": "normal, sport, unwell or guests (count for today only), just got home, window open or something else."
         },
         "note": {
           "name": "Note",

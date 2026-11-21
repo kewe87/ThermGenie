@@ -307,8 +307,8 @@ mit. Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter S
 Antwort ihn hingeschickt hat, und das so lange, bis sich die Antworten zu einer Tageszeit einpendeln. Danach fragt es
 dort nicht mehr. Bei offenem Fenster fragt es nicht, und Antworten bei offenem Fenster werden zwar gespeichert, aber
 nicht gelernt. Weicht eine Antwort deutlich von dem ab, was für diese Zeit schon gelernt ist, kommt eine zweite Frage:
-Ist gerade etwas Besonderes? Zur Wahl stehen Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
-„ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei krank nur für heute. So lernt
+Ist gerade etwas Besonderes? Zur Wahl stehen Besuch, Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
+„ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei Besuch und krank nur für heute. So lernt
 ThermGenie den Alltag und nicht die Ausnahmen.
 
 **Was man sieht.** Statt einer Zahl zeigt die Karte ein Gesicht und eine Tendenz: wird wärmer, hält oder wird kühler,

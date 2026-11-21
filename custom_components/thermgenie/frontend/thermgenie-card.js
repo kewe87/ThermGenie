@@ -32,7 +32,7 @@ const TEXT = {
     c_none: "no answer yet", c_low: "first hints", c_medium: "taking shape", c_high: "sure", settledNote: "no longer asks", nowNote: "now",
     todayLean: "Today {lean} than usual right now, fading out over a few hours.", exceptionsTitle: "Does not count for later",
     whyAsk: "Usually it feels different here at this time. Is something special going on?",
-    r_sport: "Sport", r_unwell: "Unwell, chilly", r_arrived: "Just got home", r_normal: "No, normal", r_window: "Window open",
+    r_sport: "Sport", r_unwell: "Unwell, chilly", r_guests: "Guests", r_arrived: "Just got home", r_normal: "No, normal", r_window: "Window open",
   },
   de: {
     off: "Aus", heat: "Heizen", cool: "Kühlen", dry: "Trocknen", fan_only: "Lüfter",
@@ -65,7 +65,7 @@ const TEXT = {
     c_none: "noch keine Antwort", c_low: "erste Hinweise", c_medium: "zeichnet sich ab", c_high: "sicher", settledNote: "fragt nicht mehr nach", nowNote: "jetzt",
     todayLean: "Heute gerade {lean} als sonst, das klingt in ein paar Stunden aus.", exceptionsTitle: "Zählt nicht dauerhaft",
     whyAsk: "Sonst passt es hier um diese Zeit anders. Ist gerade etwas Besonderes?",
-    r_sport: "Sport", r_unwell: "Krank, fröstelig", r_arrived: "Gerade heimgekommen", r_normal: "Nein, normal", r_window: "Fenster offen",
+    r_sport: "Sport", r_unwell: "Krank, fröstelig", r_guests: "Besuch", r_arrived: "Gerade heimgekommen", r_normal: "Nein, normal", r_window: "Fenster offen",
   },
 };
 
@@ -646,7 +646,7 @@ class ThermGeniePopup extends HTMLElement {
     const buttons = FEELINGS.map((f) => `<button class="choice feel ${last === f ? "active" : ""}" data-key="feel-${f}" data-feeling="${f}" aria-label="${text(hass, `f_${f}`)}">
         <span class="emoji">${FACES[f]}</span><span>${text(hass, `f_${f}`)}</span></button>`);
     const feel = state.attributes.feel || {};
-    const why = feel.checking ? `<div class="why"><p>${esc(text(hass, "whyAsk"))}</p><div class="chips">${[["sport", "mdi:run"], ["unwell", "mdi:emoticon-sick-outline"], ["arrived", "mdi:door-open"], ["normal", "mdi:check"]].map(([r, i]) => `<button class="chip" data-key="why-${r}" data-why="${r}">${icon(i)}${esc(text(hass, `r_${r}`))}</button>`).join("")}</div></div>` : "";
+    const why = feel.checking ? `<div class="why"><p>${esc(text(hass, "whyAsk"))}</p><div class="chips">${[["guests", "mdi:account-group"], ["sport", "mdi:run"], ["unwell", "mdi:emoticon-sick-outline"], ["arrived", "mdi:door-open"], ["normal", "mdi:check"]].map(([r, i]) => `<button class="chip" data-key="why-${r}" data-why="${r}">${icon(i)}${esc(text(hass, `r_${r}`))}</button>`).join("")}</div></div>` : "";
     return `<section><h3>${text(hass, "howFeels")}</h3><div class="choices feels">${buttons.join("")}</div>${why}</section>`;
   }
 

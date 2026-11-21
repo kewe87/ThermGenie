@@ -1014,7 +1014,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         await self.async_ask(
             say(self.hass, "feel_why_title", name=self.room),
             say(self.hass, "feel_why_body"),
-            [*({"action": f"{REASON_ACTION}{r}_{self._entry.entry_id}", "title": say(self.hass, f"why_btn_{r}")} for r in ("sport", "unwell", "arrived", "normal")),
+            [*({"action": f"{REASON_ACTION}{r}_{self._entry.entry_id}", "title": say(self.hass, f"why_btn_{r}")} for r in ("guests", "sport", "unwell", "arrived", "normal")),
              {"action": f"{REASON_ACTION}other_{self._entry.entry_id}", "title": say(self.hass, "why_btn_other"), "behavior": "textInput", "textInputButtonTitle": say(self.hass, "why_send")}],
         )
 

@@ -101,8 +101,8 @@ ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer.
 **Asking.** After a change ThermGenie asks by push once the room has been where the answer sent it for about an hour,
 until the answers around a time of day settle. Then it no longer asks there. It does not ask with the window open, and
 answers with the window open are kept but not learned. If an answer is far from what was learned for this time, a
-second question follows: is something special going on? The choice is sport, unwell, just got home, a reason of one's
-own to type in, or "all normal". With a special reason the answer does not count for later, when unwell only for today.
+second question follows: is something special going on? The choice is guests, sport, unwell, just got home, a reason of one's
+own to type in, or "all normal". With a special reason the answer does not count for later, with guests or when unwell only for today.
 This way ThermGenie learns the everyday and not the exceptions.
 
 **What you see.** Instead of a number the card shows a face and a tendency: getting warmer, holding or getting cooler,

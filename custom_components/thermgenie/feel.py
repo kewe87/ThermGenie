@@ -50,9 +50,9 @@ SUPPORT = ((2.5, "high"), (1.0, "medium"), (0.3, "low"))  # weight of the answer
 UNUSUAL_K = 1.0  # K between the answer and what was learned for this moment
 UNUSUAL_SUPPORT = 1.0  # only once enough answers speak for this moment
 CHECK_SEC = 30 * 60  # the reason may come this long after the answer
-# Reasons that make an answer not count for later; unwell still counts for today
-REASONS = ("sport", "unwell", "arrived", "window", "other")
-KEEP_TODAY = ("unwell",)
+# Reasons that make an answer not count for later; unwell and guests still count for today
+REASONS = ("sport", "unwell", "guests", "arrived", "window", "other")
+KEEP_TODAY = ("unwell", "guests")
 
 
 @dataclass

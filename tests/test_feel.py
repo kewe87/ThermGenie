@@ -188,3 +188,14 @@ def test_the_face_goes_neutral_once_the_devices_do_all_they_can():
     m = Moment(now=1000.0, hour=12.0, weekend=False, outdoor=8.0, preset="heat_comfort", base=21.0)
     learner.feel("warm", 22.4, 21.0, m)
     assert learner.arrived(1000.0 + 20 * 60, done=True)
+
+
+def test_guests_count_for_today_but_not_for_later():
+    learner = FeelLearner()
+    _settled_evening(learner)
+    m = Moment(1_800_000_000 + 4 * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+    before = learner.learned_diff(m)
+    learner.feel("cold", 21.0, 21.0, m)
+    assert learner.explain("guests", Moment(m.now + 60, 19.0, False, 5.0, "heat_comfort", 21.0))
+    assert learner.learned_diff(m) == before
+    assert learner.form(m.now + 60) > 0  # warmer for the rest of the visit

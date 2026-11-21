@@ -52,7 +52,8 @@ UNUSUAL_SUPPORT = 1.0  # only once enough answers speak for this moment
 CHECK_SEC = 30 * 60  # the reason may come this long after the answer
 # Reasons that make an answer not count for later; unwell and guests still count for today
 REASONS = ("sport", "unwell", "guests", "arrived", "window", "other")
-KEEP_TODAY = ("unwell", "guests")
+KEEP_TODAY = ("unwell", "guests")  # count for today, and later answers until the next morning are taken the same way
+NEXT_MORNING = 4.0  # o'clock: a visit or a cold lasts until then
 
 
 @dataclass
@@ -130,6 +131,8 @@ class FeelLearner:
         self.last_at: float | None = data.get("last_at")
         self.pending: bool = data.get("pending", False)  # the room is still on its way to where the last answer sent it
         self.checking: dict[str, Any] | None = data.get("checking")  # an unusual answer waits for its reason
+        self.special: str | None = data.get("special")  # guests or unwell: answers until special_until count for today only
+        self.special_until: float | None = data.get("special_until")
 
     def _weight(self, answer: Answer, m: Moment) -> float:
         w = answer.weight * exp(-0.5 * (_hour_distance(answer.hour, m.hour) / HOUR_WIDTH) ** 2)
@@ -195,6 +198,15 @@ class FeelLearner:
             self._remember(Answer(m.now, m.hour, m.weekend, m.outdoor, m.preset, right - m.base, 0.0, special))
             self.checking = None
             return self.target(m)
+        if self.special and self.special_until and m.now < self.special_until:
+            # During a visit the answers act on the room but are not learned
+            self._take(right, m)
+            self.answers[-1].weight, self.answers[-1].reason = 0.0, self.special
+            self.checking = None
+            self.last_feeling, self.last_at = feeling, m.now
+            self.pending = feeling != "good"
+            self.ask_at = None
+            return self.target(m)
         learned = m.base + self.learned_diff(m)
         unusual = self.support(m) >= UNUSUAL_SUPPORT and abs(right - learned) >= UNUSUAL_K
         before = {"form": self.day_form, "form_at": self.day_form_at}
@@ -209,16 +221,24 @@ class FeelLearner:
         """The reason for an unusual answer: normal keeps it, anything else takes it out of what is learned."""
         check = self.checking
         self.checking = None
+        if reason == "normal":
+            self.special = self.special_until = None  # the visit is over
         if check is None or m.now - check["at"] > CHECK_SEC or not self.answers or self.answers[-1].time != check["at"]:
             return False
         if reason == "normal":
             return True
         answer = self.answers[-1]
         answer.weight, answer.reason = 0.0, reason
-        if reason not in KEEP_TODAY:
+        if reason in KEEP_TODAY:
+            self.special = reason
+            self.special_until = m.now + ((NEXT_MORNING - m.hour) % 24 or 24) * 3600
+        else:
             self.day_form, self.day_form_at = check["form"], check["form_at"]
             self.pending = False
         return True
+
+    def end_special(self) -> None:
+        self.special = self.special_until = None
 
     def exceptions(self, count: int = 5) -> list[dict[str, Any]]:
         """The last answers that do not count, with their reason."""
@@ -292,6 +312,7 @@ class FeelLearner:
             "outlook": self.outlook(m),
             "checking": self.checking is not None and m.now - self.checking["at"] <= CHECK_SEC,
             "exceptions": self.exceptions(),
+            "special": self.special if self.special_until and m.now < self.special_until else None,
         }
 
     def reset(self) -> None:
@@ -307,4 +328,6 @@ class FeelLearner:
             "last_at": self.last_at,
             "pending": self.pending,
             "checking": self.checking,
+            "special": self.special,
+            "special_until": self.special_until,
         }

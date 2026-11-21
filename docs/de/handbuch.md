@@ -308,7 +308,7 @@ Antwort ihn hingeschickt hat, und das so lange, bis sich die Antworten zu einer 
 dort nicht mehr. Bei offenem Fenster fragt es nicht, und Antworten bei offenem Fenster werden zwar gespeichert, aber
 nicht gelernt. Weicht eine Antwort deutlich von dem ab, was für diese Zeit schon gelernt ist, kommt eine zweite Frage:
 Ist gerade etwas Besonderes? Zur Wahl stehen Besuch, Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
-„ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei Besuch und krank nur für heute. So lernt
+„ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei Besuch und krank nur für heute, und auch alle weiteren Antworten bis zum nächsten Morgen wirken, ohne gelernt zu werden. Im Popup beendet *Wieder normal* das vorher. So lernt
 ThermGenie den Alltag und nicht die Ausnahmen.
 
 **Was man sieht.** Statt einer Zahl zeigt die Karte ein Gesicht und eine Tendenz: wird wärmer, hält oder wird kühler,

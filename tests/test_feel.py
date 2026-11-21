@@ -199,3 +199,22 @@ def test_guests_count_for_today_but_not_for_later():
     assert learner.explain("guests", Moment(m.now + 60, 19.0, False, 5.0, "heat_comfort", 21.0))
     assert learner.learned_diff(m) == before
     assert learner.form(m.now + 60) > 0  # warmer for the rest of the visit
+
+
+def test_a_visit_lasts_until_the_next_morning():
+    learner = FeelLearner()
+    _settled_evening(learner)
+    m = Moment(1_800_000_000 + 4 * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+    before = learner.learned_diff(Moment(m.now, 23.0, False, 5.0, "heat_comfort", 21.0))
+    learner.feel("cold", 21.0, 21.0, m)
+    assert learner.explain("guests", Moment(m.now + 60, 19.0, False, 5.0, "heat_comfort", 21.0))
+    later = Moment(m.now + 4 * 3600, 23.0, False, 5.0, "heat_comfort", 21.0)
+    target = learner.feel("cool", 21.5, 21.5, later)  # still the visit
+    assert target > 21.0
+    assert learner.answers[-1].reason == "guests"
+    assert learner.learned_diff(later) == before
+    assert learner.status(later)["special"] == "guests"
+    next_day = Moment(m.now + 18 * 3600, 13.0, False, 5.0, "heat_comfort", 21.0)  # 13 o'clock the next day
+    assert learner.status(next_day)["special"] is None
+    learner.feel("good", 21.0, 21.0, next_day)
+    assert learner.answers[-1].reason is None

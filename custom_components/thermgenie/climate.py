@@ -998,6 +998,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if reason == "other" and note:
             reason = f"other:{note.strip()[:60]}"
         if not self.runtime.feel.explain(reason, self._moment()):
+            self._save_learned()  # "normal" may have ended a visit
             self.async_write_ha_state()
             return
         if reason != "normal":

@@ -495,7 +495,7 @@ sensor *Valve does not close* becomes active. When the valve closes, it becomes 
 
 Even without a valve sensor ThermGenie watches the **room itself**: if nothing has heated for 45 minutes and it still gets warmer steadily
 (at least 0.7 °C in 45 minutes and still rising), a valve is probably open although it reports closed, for example after a firmware update
-or reset of a thermostat that lost its calibration. You get an urgent message and *Valve does not close* becomes active (entry `room`).
+or reset of a thermostat that lost its calibration. You get an urgent message, and with valve sensors set, *Valve does not close* becomes active (entry `room`).
 After-heat that flattens within half an hour, a shower (humidity rises with it) and sensor jumps do not trigger it. When the room cools
 again, the warning ends.
 

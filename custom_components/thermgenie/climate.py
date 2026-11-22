@@ -133,6 +133,15 @@ PASS_THROUGH = (HVACMode.DRY, HVACMode.FAN_ONLY)
 STORE_DELAY_SEC = 30
 
 
+def feeling_for_step(delta: float) -> str:
+    """Up a bit says a bit cool, far up cold; down a bit warm, far down too warm. Knob and voice assistant alike."""
+    if abs(delta) < 0.25:
+        return "good"
+    if delta > 0:
+        return "cold" if delta >= KNOB_FAR else "cool"
+    return "hot" if delta <= -KNOB_FAR else "warm"
+
+
 @dataclass
 class Device:
     """One radiator valve or air conditioner below the thermostat."""
@@ -748,15 +757,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
 
     async def _on_knob_timer(self, _now: datetime) -> None:
         self._knob_timer = None
-        turn = self._knob_turn
-        if turn >= KNOB_FAR:
-            feeling = "cold"
-        elif turn > 0:
-            feeling = "cool"
-        elif turn <= -KNOB_FAR:
-            feeling = "hot"
-        else:
-            feeling = "warm"
+        feeling = feeling_for_step(self._knob_turn) if self._knob_turn else "warm"
         for device in self._devices:
             device.command = None  # the knob goes back to where the room wants it
         await self.async_log(say(self.hass, "feel_knob", feeling=say(self.hass, f"feel_{feeling}")))
@@ -907,10 +908,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if (target := kwargs.get(ATTR_TEMPERATURE)) is not None and self._mode != HVACMode.OFF:
             m = self._moment()
             if self.wellbeing:
-                # A number said anyway counts like a feeling that leads there
-                self.runtime.feel.told(float(target), m)
-                self._save_learned()
-                await self._async_regulate(force=True)
+                # Up or down from a voice assistant or a plain thermostat card is a feeling, not a number
+                await self.async_feel(feeling_for_step(float(target) - self.active_target))
                 return
             self.runtime.feel.hand_set(float(target), m)
             self._save_learned()

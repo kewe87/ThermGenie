@@ -244,14 +244,6 @@ class FeelLearner:
         """The last answers that do not count, with their reason."""
         return [{"reason": a.reason, "at": a.time} for a in self.answers if a.reason][-count:][::-1]
 
-    def told(self, target: float, m: Moment) -> float:
-        """A number said in Thermal Wellbeing counts like a feeling that leads there."""
-        self._take(_clamp(target, LOW, HIGH), m)
-        self.last_at = m.now
-        self.pending = False
-        self.ask_at = m.now
-        return self.target(m)
-
     def _take(self, right: float, m: Moment) -> None:
         last = self.answers[-1] if self.answers else None
         if last is not None and last.weight == 1.0 and 0 <= m.now - last.time < CORRECTION_SEC:

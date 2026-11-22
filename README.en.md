@@ -87,7 +87,7 @@ the popup nor in the push question.
 **Answers.** One only says how it feels: 🥶 cold, 🙁 a bit cool, 😊 fine, 😐 a bit warm, 🥵 too warm. That works with the
 faces, with plus and minus in the popup, with the buttons of a push notification or with the action `thermgenie.feel`.
 The knob of the thermostat is an answer as well: turned up a bit means a bit cool, down a bit means a bit warm, from
-1.5 degrees on cold or too warm. Afterwards ThermGenie sets the knob back to where the room is heading. When the
+1.5 degrees on cold or too warm. A setpoint from outside, for example from Alexa through a Matter bridge, counts the same way: "Alexa, living room warmer" is a bit cool, "cooler" a bit warm. Afterwards ThermGenie sets the knob back to where the room is heading. When the
 thermostat has a child lock, ThermGenie sets it itself: on in the thermostat mode and under a heating lock, off in
 Thermal Wellbeing. A second answer within two minutes replaces the first one, for example after a mis-tap.
 

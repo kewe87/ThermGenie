@@ -291,7 +291,7 @@ auf der Karte noch im Popup noch in der Nachfrage per Push.
 **Antworten.** Man sagt nur, wie es sich anfühlt: 🥶 kalt, 🙁 etwas kühl, 😊 passt, 😐 etwas warm, 🥵 zu warm. Das geht
 über die Smileys, über Plus und Minus im Popup, über die Knöpfe einer Push-Mitteilung oder mit der Aktion
 `thermgenie.feel`. Auch der Drehknopf am Thermostat ist eine Antwort: ein Stück hoch heißt etwas kühl, ein Stück runter
-etwas warm, ab 1,5 Grad gedreht kalt oder zu warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin
+etwas warm, ab 1,5 Grad gedreht kalt oder zu warm. Genauso zählt ein Wert von außen, etwa von Alexa über eine Matter-Bridge: „Alexa, Wohnzimmer wärmer“ ist etwas kühl, „kälter“ etwas warm. Danach stellt ThermGenie den Knopf wieder dorthin, wo der Raum hin
 soll. Hat das Thermostat eine Kindersicherung, schaltet ThermGenie sie selbst: im Thermostat-Betrieb und bei Heizsperre
 an, in Thermal Wellbeing aus. Eine zweite Antwort innerhalb von zwei Minuten ersetzt die erste, etwa nach einem
 Verklicken.

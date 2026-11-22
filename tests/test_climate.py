@@ -1003,6 +1003,20 @@ async def test_wellbeing_follows_the_feeling_and_hides_nothing_from_the_switch(h
     assert state.attributes["temperature"] == 22.0
 
 
+async def test_wellbeing_takes_warmer_and_cooler_from_a_voice_assistant_as_a_feeling(hass, radio):
+    devices(hass)
+    hass.states.async_set(SENSOR, "21.0")
+    await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.async_block_till_done()
+    await service(hass, "set_temperature", temperature=22.0)  # "Alexa, Wohnbereich wärmer"
+    assert hass.states.get("sensor.wohnbereich_feeling").state == "cool"
+    assert hass.states.get(ENTITY).attributes["temperature"] == 21.5
+    await service(hass, "set_temperature", temperature=19.5)  # two steps down
+    assert hass.states.get("sensor.wohnbereich_feeling").state == "hot"
+
+
 async def test_wellbeing_asks_by_push_and_takes_the_answer(hass, radio):
     devices(hass)
     pushes = []

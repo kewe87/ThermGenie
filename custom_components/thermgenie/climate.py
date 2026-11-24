@@ -1328,6 +1328,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             "valve": openings[0] if len(set(openings)) == 1 else None,
             "control": self._planner.mode if any(d.regulated for d in devices) else "device" if None in openings else "closed",
             "trim": round(self._planner.trim, 1),
+            "forecast": self._planner.forecast,
             "bias": round(self.runtime.model.bias, 3),
             **self.runtime.model.summary(self.active_target, self._flow()),
         }

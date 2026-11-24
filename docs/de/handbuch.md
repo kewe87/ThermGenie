@@ -254,7 +254,8 @@ ThermGenie direkt steuern. Statt eines verschobenen Sollwerts erhält das Ventil
 ThermGenie laufend ein kleines Wärmemodell des Raums: wie stark die Heizkörper bei welcher Vorlauftemperatur heizen,
 wie schnell der Raum nach außen Wärme verliert und wie träge die Heizkörper sind. Mit diesem Modell plant es die
 Öffnung zwei Stunden voraus und schließt rechtzeitig, bevor der Raum überschwingt. Bis das Modell den Raum kennt,
-meist nach zwei bis drei Tagen, regelt ein einfacher Regler die Ventile. Das Gelernte bleibt über Neustarts erhalten
+meist nach zwei bis drei Tagen, regelt ein einfacher Regler die Ventile. Auch er schaut voraus: Steigt der
+Raum schnell, bremst er nach dem Stand, den der Raum mit dem Nachheizen der Heizkörper erreichen wird. Das Gelernte bleibt über Neustarts erhalten
 und erscheint als Sensor *Ventilöffnung*, samt Kurve der nötigen Öffnung je Außentemperatur.
 
 Das Thermostat behält den Sollwert als Rückfall. Fällt der Raumfühler aus, bekommt es sein Ventil zurück und regelt

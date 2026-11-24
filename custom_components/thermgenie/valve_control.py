@@ -51,6 +51,14 @@ TRIM_MAX = 10.0
 PI_KP = 40.0  # percent per kelvin
 PI_KI = 10.0  # percent per kelvin hour
 PI_I_MAX = 70.0
+# The PI regulator looks ahead: radiators keep heating long after the valve closed, so a
+# room that is rising fast is braked by where it will be, not by where it is.
+TREND_SEC = 20 * 60  # the rise of the room is measured over this time
+TREND_MIN_SEC = 8 * 60  # a shorter stretch says nothing yet
+LEAD_OF_DELAY = 0.6  # how far ahead it looks, as a share of the learned radiator delay
+LEAD_MIN_H = 0.25
+LEAD_MAX_H = 0.75
+LEAD_FALLING = 0.5  # a falling room opens a little earlier, but more carefully
 VALVE_STEP = 5.0  # valve positions are rounded to this
 VALVE_MIN_GAP_SEC = 10 * 60  # a valve is moved at most this often, closing excepted
 VALVE_SMALL_GAP_SEC = 30 * 60  # a move of one step waits this long
@@ -268,25 +276,60 @@ class ValvePlanner:
         self.last_valve: float | None = None
         self.last_time: float | None = None
         self.mode = "pi"
+        self.trend: deque[tuple[float, float]] = deque()
+        self.forecast: float | None = None  # where the PI regulator expects the room, for the history
 
     def reset(self) -> None:
         self.trim = 0.0
         self.pi_integral = None
         self.last_time = None
+        self.trend.clear()
+        self.forecast = None
+
+    def slope(self, now: float, room: float) -> float:
+        """Return how fast the room changes, in K per hour, from a straight line through the last minutes."""
+        self.trend.append((now, room))
+        while self.trend and now - self.trend[0][0] > TREND_SEC:
+            self.trend.popleft()
+        if len(self.trend) < 3 or now - self.trend[0][0] < TREND_MIN_SEC:
+            return 0.0
+        n = len(self.trend)
+        mean_t = sum(t for t, _ in self.trend) / n
+        mean_r = sum(r for _, r in self.trend) / n
+        var = sum((t - mean_t) ** 2 for t, _ in self.trend)
+        if var <= 0:
+            return 0.0
+        k_per_s = sum((t - mean_t) * (r - mean_r) for t, r in self.trend) / var
+        return _clamp(k_per_s * 3600.0, -MAX_SLOPE, MAX_SLOPE)
+
+    def lead_hours(self) -> float:
+        """How far the PI regulator looks ahead, from the radiator delay the model found best."""
+        best = self.model.best
+        tau = best.tau_min if best.mse is not None else 45.0
+        return _clamp(LEAD_OF_DELAY * tau / 60.0, LEAD_MIN_H, LEAD_MAX_H)
 
     def plan(self, now: float, room: float, target: float, outdoor: float, flow: float | None) -> float:
         """Return the wanted opening in percent, before rounding."""
         hours = 0.0 if self.last_time is None else min((now - self.last_time) / 3600.0, 0.5)
         self.last_time = now
         error = target - room
+        slope = self.slope(now, room)
         if not self.model.ready:
             self.mode = "pi"
             if self.pi_integral is None:
                 self.pi_integral = _clamp(1.5 * (target - outdoor), 5.0, 60.0)
-            if error > -0.2:
-                self.pi_integral = _clamp(self.pi_integral + PI_KI * error * hours, 0.0, PI_I_MAX)
-            return 0.0 if error < -0.2 else _clamp(PI_KP * error + self.pi_integral, 0.0, 100.0)
+            lead = self.lead_hours()
+            ahead = room + slope * lead * (1.0 if slope > 0 else LEAD_FALLING)
+            self.forecast = round(ahead, 2)
+            ahead_error = target - ahead
+            if ahead_error > -0.2:
+                # Only the real distance fills the integral, the forecast must not wind it up
+                self.pi_integral = _clamp(self.pi_integral + PI_KI * min(error, ahead_error) * hours, 0.0, PI_I_MAX)
+            if ahead_error < -0.2 or error < -0.2:
+                return 0.0
+            return _clamp(PI_KP * ahead_error + self.pi_integral, 0.0, 100.0)
         self.mode = "model"
+        self.forecast = None
         self.pi_integral = None
         self.trim = _clamp(self.trim + TRIM_GAIN * error * hours, -TRIM_MAX, TRIM_MAX)
         best, best_cost = 0.0, None

@@ -94,3 +94,42 @@ def test_valve_commands_are_rounded_and_spared():
     assert planner.command(700, 55.0) == 55.0
     assert planner.command(760, 0.0) == 0.0  # closing never waits
     assert round_valve(103) == 100.0 and round_valve(-4) == 0.0
+
+
+class _NotReady(RoomModel):
+    """A model that never trusts itself, so the PI regulator drives."""
+
+    @property
+    def ready(self) -> bool:
+        return False
+
+
+def _warm_up(planner_cls=ValvePlanner, tau=75.0, a=3.4, b=0.05, start=20.5, target=22.0):
+    """A slow room like a living room with two radiators: warm up from eco to comfort."""
+    model = _NotReady()
+    planner = planner_cls(model)
+    room, heat, valve, t, outdoor, flow = start, 0.0, 0.0, 0.0, 0.0, 62.0
+    peak, valves = room, []
+    for _ in range(6 * 60):  # six hours, one minute steps
+        heat += (heat_input(valve, room, flow) - heat) * (1 - exp(-1 / tau))
+        room += (a * heat - b * (room - outdoor)) / 60
+        t += 60
+        if int(t) % 120 == 0:
+            sent = planner.command(t, planner.plan(t, round(room, 1), target, outdoor, flow))
+            if sent is not None:
+                valve = sent
+        peak = max(peak, room)
+        valves.append(valve)
+    return peak, room, valves
+
+
+def test_the_pi_regulator_brakes_a_room_that_rises_fast():
+    peak, end, _ = _warm_up()
+    assert peak - 22.0 < 0.45  # the radiators' afterglow no longer carries the room far beyond
+    assert abs(end - 22.0) < 0.4  # and it still arrives and holds
+
+
+def test_the_pi_regulator_still_warms_up_a_cold_room():
+    peak, end, valves = _warm_up(start=19.0)
+    assert max(valves) >= 60
+    assert end > 21.6

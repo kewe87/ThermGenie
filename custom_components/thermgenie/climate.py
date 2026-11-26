@@ -45,7 +45,6 @@ from .const import (
     EXTERNAL_SUFFIX,
     SAFETY_MARGIN,
     AIRING_FREE,
-    AIRING_RISE_K_PER_H,
     SENSOR_SELECT_SUFFIX,
     HOLD_WAIT_SEC,
     KNOB_FAR,
@@ -443,6 +442,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             "blocked_by": self._blocked_by(),
             "sensor_stale": self._sensor_stale,
             "recovering": self.recovering,
+            "airing_rise": self.runtime.airing.rate,
             "sensor_reported": reported.isoformat() if reported else None,
             "heat_lock": self.lock.enabled,
             "frost_active": self.lock.frost_active,
@@ -797,6 +797,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
                 self._start_recovery(dt_util.utcnow())
             elif wanted:
                 self._aired = None
+                self.runtime.airing.cancel()
             self._window_open = wanted
             self.hass.async_create_task(self._async_regulate(force=True))
 
@@ -823,9 +824,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return target
         closed_at, start, aired_target = self._aired
         room = self.real_temperature()
-        ramp = start + AIRING_RISE_K_PER_H * (now - closed_at).total_seconds() / 3600.0
-        if target != aired_target or ramp >= target or (room is not None and room >= target):
-            self._aired = None  # a new setpoint, the ramp arrived or the room is back by itself
+        ramp = start + self.runtime.airing.rate * (now - closed_at).total_seconds() / 3600.0
+        if target != aired_target:
+            self._aired = None  # a new setpoint ends the gentle way back
+            return target
+        if ramp >= target or (room is not None and room >= target):
+            self._aired = None  # arrived: watch the afterglow and learn from it
+            self.runtime.airing.arrived(now.timestamp(), target, room if room is not None else target)
             return target
         return ramp
 
@@ -846,6 +851,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         await self.valves.async_check()
         self._track_phase()
         self._track_valves()
+        if self.runtime.airing.observe(dt_util.utcnow().timestamp(), self.real_temperature(), self.active_target):
+            self._save_learned()
         await self._async_ask_feeling()
 
     def _flow(self) -> float | None:
@@ -903,6 +910,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self.runtime.optimizer.reset()
         self.runtime.model.reset()
         self.runtime.feel.reset()
+        self.runtime.airing.reset()
         self._planner.reset()
         self._tune_devices()
         self._save_learned()

@@ -96,3 +96,29 @@ def test_learner_moves_in_small_bounded_steps_per_range():
     learner.reset()
     assert learner.factor(65) == 1.0
     assert Learner(learner.as_dict()).history
+
+
+def test_airing_learner_slows_down_after_an_overshoot_and_speeds_up_without():
+    from custom_components.thermgenie.airing import AiringLearner
+
+    learner = AiringLearner()
+    start = learner.rate
+    learner.arrived(0, 21.0, 21.0)
+    assert not learner.observe(600, 21.6, 21.0)  # afterglow carries the room on
+    assert learner.observe(6000, 21.2, 21.0)
+    assert learner.rate < start and learner.last_overshoot == 0.6
+    slowed = learner.rate
+    learner.arrived(0, 21.0, 21.0)
+    assert learner.observe(6000, 21.05, 21.0)  # no overshoot: next time a little faster
+    assert slowed < learner.rate
+    again = AiringLearner(learner.as_dict())
+    assert again.rate == learner.rate and again.count == 2
+
+
+def test_airing_learner_ignores_a_new_setpoint():
+    from custom_components.thermgenie.airing import AiringLearner
+
+    learner = AiringLearner()
+    learner.arrived(0, 21.0, 21.0)
+    assert not learner.observe(6000, 23.0, 22.0)
+    assert learner.count == 0

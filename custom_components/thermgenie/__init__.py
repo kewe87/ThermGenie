@@ -19,6 +19,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from .airing import AiringLearner
 from .const import CONF_HEATERS, CONF_LOCK_VALVE, CONF_VALVES, DOMAIN
 from .learning import Learner
 from .optimizer import Optimizer
@@ -44,10 +45,11 @@ class Runtime:
     unique_ids: set[str] = field(default_factory=set)
     model: RoomModel = field(default_factory=RoomModel)  # what the valve control learned about the room
     feel: FeelLearner = field(default_factory=FeelLearner)  # what feels right, for Thermal Wellbeing
+    airing: AiringLearner = field(default_factory=AiringLearner)  # how fast to warm up after airing
 
     def stored(self) -> dict[str, Any]:
         """Return what is kept across restarts."""
-        return {**self.learner.as_dict(), "optimizer": self.optimizer.as_dict(), "valve_model": self.model.as_dict(), "feel": self.feel.as_dict()}
+        return {**self.learner.as_dict(), "optimizer": self.optimizer.as_dict(), "valve_model": self.model.as_dict(), "feel": self.feel.as_dict(), "airing": self.airing.as_dict()}
 
     def updated(self) -> None:
         """Tell the helper entities that something changed."""
@@ -112,7 +114,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
     device = DeviceInfo(identifiers={(DOMAIN, entry.entry_id)}, name=entry.title, manufacturer="ThermGenie", model="Thermostat")
     stored = await store.async_load() or {}
-    entry.runtime_data = Runtime(store, Learner(stored), device, Optimizer(stored.get("optimizer")), model=RoomModel(stored.get("valve_model")), feel=FeelLearner(stored.get("feel")))
+    entry.runtime_data = Runtime(store, Learner(stored), device, Optimizer(stored.get("optimizer")), model=RoomModel(stored.get("valve_model")), feel=FeelLearner(stored.get("feel")), airing=AiringLearner(stored.get("airing")))
     await hass.config_entries.async_forward_entry_setups(entry, [Platform.CLIMATE])
     await hass.config_entries.async_forward_entry_setups(entry, HELPERS)
     registry = er.async_get(hass)

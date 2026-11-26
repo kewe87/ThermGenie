@@ -139,7 +139,7 @@ only covers heating with radiators.
 - **Heating up before waking:** Lead time ahead of an alarm, optionally a fixed time or a time from an entity
 - **Way home:** Preheating based on direction and distance
 - **Boost:** Raised setpoint with an optional end time
-- **Windows:** Reaction to open windows with adjustable delays. After airing the room warms up gently (about 1 degree per hour at most) instead of chasing the target at full power and overshooting through the radiators' afterglow. Walls and furniture hardly cooled and warm the air on their own. A new setpoint ends this at once.
+- **Windows:** Reaction to open windows with adjustable delays. After airing the room warms up gently (about 1 degree per hour at first) instead of chasing the target at full power and overshooting through the radiators' afterglow. Walls and furniture hardly cooled and warm the air on their own. Each room learns the pace itself: when it overshoots afterwards, the next time is slower, when it stays at the target, a little faster (attribute `airing_rise`). A new setpoint ends this at once.
 - **Heat source:** With an air conditioner that can heat, choose whether to heat with the radiators, the air conditioner or both
 - **Warm days:** Heating block through an outdoor sensor with hysteresis and hold time
 

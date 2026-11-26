@@ -51,6 +51,7 @@ TRIM_MAX = 10.0
 PI_KP = 40.0  # percent per kelvin
 PI_KI = 10.0  # percent per kelvin hour
 PI_I_MAX = 70.0
+PI_REOPEN = 0.1  # a room above the target opens again only this close to it
 # The PI regulator looks ahead: radiators keep heating long after the valve closed, so a
 # room that is rising fast is braked by where it will be, not by where it is.
 TREND_SEC = 20 * 60  # the rise of the room is measured over this time
@@ -322,10 +323,15 @@ class ValvePlanner:
             ahead = room + slope * lead * (1.0 if slope > 0 else LEAD_FALLING)
             self.forecast = round(ahead, 2)
             ahead_error = target - ahead
-            if ahead_error > -0.2:
+            if error < 0.0:
+                # Too warm: the integral bleeds by the real excess, also while the valve is shut.
+                # Frozen, it would open the valve to the old level again at the next small dip
+                # and carry the room beyond the target once more.
+                self.pi_integral = _clamp(self.pi_integral + PI_KI * error * hours, 0.0, PI_I_MAX)
+            elif ahead_error > -0.2:
                 # Only the real distance fills the integral, the forecast must not wind it up
                 self.pi_integral = _clamp(self.pi_integral + PI_KI * min(error, ahead_error) * hours, 0.0, PI_I_MAX)
-            if ahead_error < -0.2 or error < -0.2:
+            if ahead_error < -0.2 or error < -PI_REOPEN:
                 return 0.0
             return _clamp(PI_KP * ahead_error + self.pi_integral, 0.0, 100.0)
         self.mode = "model"

@@ -133,3 +133,17 @@ def test_the_pi_regulator_still_warms_up_a_cold_room():
     peak, end, valves = _warm_up(start=19.0)
     assert max(valves) >= 60
     assert end > 21.6
+
+
+def test_a_room_that_stayed_too_warm_does_not_reopen_at_the_old_level():
+    planner = ValvePlanner(_NotReady())
+    for i in range(10):  # an hour of holding at the target builds the integral
+        planner.plan(i * 360.0, 22.0, 22.0, 5.0, 60.0)
+    held = planner.pi_integral
+    for i in range(10, 20):  # then the afterglow keeps the room too warm for an hour, valve shut
+        assert planner.plan(i * 360.0, 22.4, 22.0, 5.0, 60.0) == 0.0
+    assert planner.pi_integral < held - 3.0  # the integral bled meanwhile
+    for i in range(20, 25):  # slowly cooling back towards the target
+        assert planner.plan(i * 360.0, 22.2, 22.0, 5.0, 60.0) == 0.0  # still above: stays shut
+    assert planner.plan(25 * 360.0, 22.0, 22.0, 5.0, 60.0) > 0.0  # back at the target it heats again
+    assert planner.pi_integral < held - 3.0  # but from a lower base than before the overshoot

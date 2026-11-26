@@ -147,3 +147,20 @@ def test_a_room_that_stayed_too_warm_does_not_reopen_at_the_old_level():
         assert planner.plan(i * 360.0, 22.2, 22.0, 5.0, 60.0) == 0.0  # still above: stays shut
     assert planner.plan(25 * 360.0, 22.0, 22.0, 5.0, 60.0) > 0.0  # back at the target it heats again
     assert planner.pi_integral < held - 3.0  # but from a lower base than before the overshoot
+
+
+def test_what_the_room_needs_survives_a_restart_and_airing():
+    model = RoomModel()
+    planner = ValvePlanner(model)
+    planner.plan(0.0, 20.0, 20.0, 3.0, None)
+    for minute in range(1, 240):  # a strong radiator: the room stays a bit too warm, the integral bleeds
+        planner.plan(minute * 60.0, 20.4, 20.0, 3.0, None)
+    learned = planner.pi_integral
+    assert learned < 15.0
+    planner.reset()  # window open
+    assert planner.pi_integral == learned
+    restarted = ValvePlanner(RoomModel(model.as_dict()))
+    assert restarted.pi_integral == pytest.approx(learned, abs=0.01)
+    assert restarted.plan(0.0, 20.0, 20.0, 3.0, None) < 15.0  # not the wide opening of a fresh start
+    model.reset()
+    assert planner.pi_integral is None

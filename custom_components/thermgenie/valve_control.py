@@ -141,6 +141,10 @@ class RoomModel:
         self.heating_samples = int(data.get("heating_samples", 0))
         self.cooling_samples = int(data.get("cooling_samples", 0))
         self.flow_mean = data.get("flow_mean")
+        # What the PI regulator found the room needs, kept across restarts and airing: started
+        # afresh from the outdoor temperature every time, a strong radiator in a small room
+        # opened far too wide and overshot after each restart
+        self.pi_integral: float | None = data.get("pi_integral")
         self.bias = 0.0  # K/h the model was off lately, corrects the plan until the fit catches up
         self._window: deque[_Sample] = deque()
         self._last: float | None = None
@@ -264,6 +268,7 @@ class RoomModel:
             "heating_samples": self.heating_samples,
             "cooling_samples": self.cooling_samples,
             "flow_mean": self.flow_mean,
+            "pi_integral": None if self.pi_integral is None else round(self.pi_integral, 2),
         }
 
 
@@ -273,16 +278,23 @@ class ValvePlanner:
     def __init__(self, model: RoomModel) -> None:
         self.model = model
         self.trim = 0.0
-        self.pi_integral: float | None = None
         self.last_valve: float | None = None
         self.last_time: float | None = None
         self.mode = "pi"
         self.trend: deque[tuple[float, float]] = deque()
         self.forecast: float | None = None  # where the PI regulator expects the room, for the history
 
+    @property
+    def pi_integral(self) -> float | None:
+        return self.model.pi_integral
+
+    @pi_integral.setter
+    def pi_integral(self, value: float | None) -> None:
+        self.model.pi_integral = value
+
     def reset(self) -> None:
+        """Start the measurement again. What the room needs stays, only forgetting the model clears it."""
         self.trim = 0.0
-        self.pi_integral = None
         self.last_time = None
         self.trend.clear()
         self.forecast = None
@@ -336,7 +348,6 @@ class ValvePlanner:
             return _clamp(PI_KP * ahead_error + self.pi_integral, 0.0, 100.0)
         self.mode = "model"
         self.forecast = None
-        self.pi_integral = None
         self.trim = _clamp(self.trim + TRIM_GAIN * error * hours, -TRIM_MAX, TRIM_MAX)
         best, best_cost = 0.0, None
         settle = SETTLE_MIN // PLAN_STEP_MIN

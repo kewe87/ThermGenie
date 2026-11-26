@@ -44,6 +44,8 @@ from .const import (
     EXTERNAL_REMOTE,
     EXTERNAL_SUFFIX,
     SAFETY_MARGIN,
+    AIRING_FREE,
+    AIRING_RISE_K_PER_H,
     SENSOR_SELECT_SUFFIX,
     HOLD_WAIT_SEC,
     KNOB_FAR,
@@ -237,6 +239,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         }
         self._window_open = False
         self._window_timer = None
+        self._aired: tuple[datetime, float, float] | None = None  # closed at, room then, target then
         self._outdoor_blocked = False
         self._outdoor_since: tuple[bool, datetime] | None = None
         self._sensor_stale = False
@@ -439,6 +442,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             "profile": self.profile,
             "blocked_by": self._blocked_by(),
             "sensor_stale": self._sensor_stale,
+            "recovering": self.recovering,
             "sensor_reported": reported.isoformat() if reported else None,
             "heat_lock": self.lock.enabled,
             "frost_active": self.lock.frost_active,
@@ -789,10 +793,45 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         @callback
         def _apply(_now: datetime) -> None:
             self._window_timer = None
+            if self._window_open and not wanted:
+                self._start_recovery(dt_util.utcnow())
+            elif wanted:
+                self._aired = None
             self._window_open = wanted
             self.hass.async_create_task(self._async_regulate(force=True))
 
         self._window_timer = async_call_later(self.hass, delay, _apply)
+
+    def _start_recovery(self, now: datetime) -> None:
+        """After airing the room warms up gently instead of at full power.
+
+        The air cooled much more than the walls and the furniture, which warm it again
+        on their own. Chasing the target at once would open the radiators wide and their
+        afterglow would carry the room far beyond it.
+        """
+        room = self.real_temperature()
+        target = self.active_target
+        if room is None or self._mode_role() != "heat" or room >= target - AIRING_FREE:
+            self._aired = None
+            return
+        self._aired = (now, room, target)
+
+    def _control_target(self, now: datetime) -> float:
+        """The target the heating regulation chases: the setpoint, or a gentle ramp to it after airing."""
+        target = self.active_target
+        if self._aired is None:
+            return target
+        closed_at, start, aired_target = self._aired
+        room = self.real_temperature()
+        ramp = start + AIRING_RISE_K_PER_H * (now - closed_at).total_seconds() / 3600.0
+        if target != aired_target or ramp >= target or (room is not None and room >= target):
+            self._aired = None  # a new setpoint, the ramp arrived or the room is back by itself
+            return target
+        return ramp
+
+    @property
+    def recovering(self) -> bool:
+        return self._aired is not None
 
     @callback
     def _cancel_window_timer(self) -> None:
@@ -1261,7 +1300,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         regulated = [d for d in devices if d.regulated]
         room = self._reference("heat")
         if regulated and room is not None:
-            wanted = planner.plan(now.timestamp(), room, self.active_target, self._outdoor_or_default(), self._flow())
+            wanted = planner.plan(now.timestamp(), room, self._control_target(now), self._outdoor_or_default(), self._flow())
             planner.command(now.timestamp(), wanted)
         else:
             planner.reset()
@@ -1339,7 +1378,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         device.valve, device.regulated = None, False  # the device decides unless said otherwise below
         if self.lock.frost_active and device.role == "heat":
             return self._fit(self.conf[CONF_LOCK_FROST_OFF], state)
-        target = self.active_target + device.offset
+        target = (self._control_target(now) if device.role == "heat" else self.active_target) + device.offset
         if not self._acts(device) or self._blocked_by() == "outdoor":
             device.last_run = None
             device.valve = 0.0

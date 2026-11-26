@@ -143,7 +143,7 @@ Tage bis Wochen. Sie betrifft nur das Heizen über Heizkörper.
 - **Aufheizen vor dem Wecken:** Vorlauf vor einem Wecker, optional eine feste Uhrzeit oder eine Zeit aus einer Entität
 - **Heimweg:** Vorheizen anhand von Richtung und Entfernung
 - **Boost:** Erhöhter Sollwert mit optionaler Endzeit
-- **Fenster:** Reaktion auf offene Fenster mit einstellbaren Verzögerungen
+- **Fenster:** Reaktion auf offene Fenster mit einstellbaren Verzögerungen. Nach dem Lüften heizt der Raum sanft wieder hoch (höchstens etwa 1 Grad pro Stunde), statt mit voller Kraft nachzuheizen und durch die Nachwärme der Heizkörper über das Ziel zu schießen. Wände und Möbel sind kaum abgekühlt und wärmen die Luft ohnehin von selbst. Ein neuer Sollwert beendet das sofort.
 - **Heizquelle:** Bei einem heizfähigen Klimagerät lässt sich wählen, ob mit den Heizkörpern, dem Klimagerät oder beiden geheizt wird
 - **Warme Tage:** Heizsperre über einen Außenfühler mit Hysterese und Haltezeit
 

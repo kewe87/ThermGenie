@@ -93,6 +93,8 @@ EXTERNAL_LOCAL = "local_temperature"
 EXTERNAL_REMOTE = "remote_temperature"
 EXTERNAL_CHANGE = 0.3  # K, a smaller change is not worth the radio
 EXTERNAL_ALIVE_SEC = 60 * 60  # sign of life, the device goes back to its own sensor after two hours without news
+AIRING_RISE_K_PER_H = 1.0  # after airing the heating brings the room back this fast at most
+AIRING_FREE = 0.3  # a room this close to the target after airing needs no ramp
 SAFETY_MARGIN = 2.0  # K above the target the device closes on its own
 
 CONF_GUARD_SENSOR = "guard_sensor"

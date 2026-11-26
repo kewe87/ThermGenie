@@ -311,6 +311,31 @@ async def test_open_window_goes_to_frost_after_the_delay_and_back(hass, radio):
     assert hass.states.get(ENTITY).attributes["blocked_by"] is None
 
 
+async def test_after_airing_the_room_warms_up_gently(hass, radio, freezer):
+    devices(hass)
+    hass.states.async_set(SENSOR, "21.0")
+    await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    hass.states.async_set(WINDOW, "on")
+    freezer.tick(timedelta(seconds=121))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    hass.states.async_set(SENSOR, "18.0")  # aired: the air is cold, the walls are not
+    hass.states.async_set(WINDOW, "off")
+    await hass.async_block_till_done()
+    radio.calls.clear()
+    freezer.tick(timedelta(seconds=152))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["recovering"] is True
+    assert radio.setpoints(KU)[-1] < 20.0  # no full power chase after the cold air
+    for _ in range(40):  # four hours later the ramp has arrived
+        freezer.tick(timedelta(minutes=6))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).attributes["recovering"] is False
+
+
 async def test_warm_day_blocks_heating_only_after_the_hold_time(hass, radio, freezer):
     devices(hass)
     await setup(hass)

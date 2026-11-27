@@ -200,6 +200,8 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
     _attr_translation_key = "thermgenie"
     # Only the card needs these, the history stays small without them
     _unrecorded_attributes = frozenset({"devices", "profiles", "presets", "routines", "routines_off", "learned_factors", "lock_frost_off", "feel"})
+    # The native names count from Home Assistant 2026.11 on, the old ones for older versions
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 5.0
@@ -375,11 +377,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         return self._profiles[self.profile]["preset"]
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Off means off, there is no target. Only a frost break has one."""
         if self.lock.frost_active:
             return self.conf[CONF_LOCK_FROST_OFF]
         return None if self._mode == HVACMode.OFF else self.active_target
+
+    target_temperature = native_target_temperature
 
     @property
     def preset_modes(self) -> list[str]:
@@ -390,8 +394,10 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         return None if self._mode == HVACMode.OFF else self.active_preset
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         return self._reference(self.profile)
+
+    current_temperature = native_current_temperature
 
     @property
     def current_humidity(self) -> float | None:

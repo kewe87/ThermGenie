@@ -176,7 +176,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service("reset_learning", None, "async_reset_learning")
     platform.async_register_entity_service("set_routine", {vol.Required("routine"): vol.In(ROUTINE_NAMES), vol.Required("enabled"): bool}, "async_set_routine")
-    platform.async_register_entity_service("feel", {vol.Required("feeling"): vol.In(FEELINGS)}, "async_feel")
+    platform.async_register_entity_service("feel", {vol.Required("feeling"): vol.In(FEELINGS)}, "async_feel_service")
     platform.async_register_entity_service("set_wellbeing", {vol.Required("enabled"): bool}, "async_set_wellbeing")
     platform.async_register_entity_service("explain_feeling", {vol.Required("reason"): vol.In((*REASONS, "normal")), vol.Optional("note"): cv.string}, "async_explain_feeling")
 
@@ -740,6 +740,10 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return None
         if old.attributes.get(ATTR_TEMPERATURE) == new.attributes.get(ATTR_TEMPERATURE) or new.state != old.state:
             return None
+        if new.state != HVACMode.HEAT:
+            # A thermostat that fell into its own mode (auto runs its built-in schedule) changes
+            # its setpoint by itself: that is nobody turning the knob
+            return None
         for device in self._devices:
             if device.entity_id != entity_id or device.role != "heat" or isinstance(device.command, str) or device.command is None:
                 continue
@@ -765,7 +769,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         for device in self._devices:
             device.command = None  # the knob goes back to where the room wants it
         await self.async_log(say(self.hass, "feel_knob", feeling=say(self.hass, f"feel_{feeling}")))
-        await self.async_feel(feeling)
+        await self.async_feel(feeling, "device")
 
     @callback
     def _cancel_knob_timer(self) -> None:
@@ -956,7 +960,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             m = self._moment()
             if self.wellbeing:
                 # Up or down from a voice assistant or a plain thermostat card is a feeling, not a number
-                await self.async_feel(feeling_for_step(float(target) - self.active_target))
+                await self.async_feel(feeling_for_step(float(target) - self.active_target), "device")
                 return
             self.runtime.feel.hand_set(float(target), m)
             self._save_learned()
@@ -1023,15 +1027,29 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         self._tendency = tendency(self._reference(self.profile), self.target_temperature, active, self._tendency)
         return self._tendency
 
-    async def async_feel(self, feeling: str) -> None:
-        """Take how it feels in the room. In the thermostat mode it moves the setpoint."""
+    async def async_feel_service(self, feeling: str) -> None:
+        """The feel action. From a dashboard (a person logged in) the follow-up question shows there."""
+        context = self._context
+        # Straight from a person, not through a script or an automation they started
+        user = context.user_id if context is not None and context.parent_id is None else None
+        await self.async_feel(feeling, "dashboard" if user else "device", user)
+
+    async def async_feel(self, feeling: str, source: str = "device", user: str | None = None) -> None:
+        """Take how it feels in the room. In the thermostat mode it moves the setpoint.
+
+        source says where the answer came from, the follow-up question goes back there:
+        dashboard (the card shows it to that user), push (a push to the phone that answered)
+        or device (a knob or a voice assistant, which have no screen: a push).
+        """
         self._refuse_when_locked(self.profile)
         m = self._moment()
         # With the window open a feeling says nothing about the room: kept, not learned
         special = "window" if self._window_open else None
         target = self.runtime.feel.feel(feeling, self._reference(self.profile), self.active_target, m, special)
         if self.runtime.feel.checking is not None:
-            self.hass.async_create_task(self._async_ask_reason())
+            self.runtime.feel.checking.update({"via": source, "user": user})
+            if source != "dashboard":
+                self.hass.async_create_task(self._async_ask_reason(answering=source == "push"))
         if not self.wellbeing:
             self._profiles[self.profile] = {"target": target, "preset": PRESET_NONE, "base": target}
             self.routines.preset_changed(PRESET_NONE)
@@ -1057,12 +1075,13 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return reason[6:]
         return say(self.hass, f"why_{reason}")
 
-    async def _async_ask_reason(self) -> None:
+    async def _async_ask_reason(self, answering: bool = False) -> None:
         await self.async_ask(
             say(self.hass, "feel_why_title", name=self.room),
             say(self.hass, "feel_why_body"),
             [*({"action": f"{REASON_ACTION}{r}_{self._entry.entry_id}", "title": say(self.hass, f"why_btn_{r}")} for r in ("guests", "sport", "unwell", "arrived", "normal")),
              {"action": f"{REASON_ACTION}other_{self._entry.entry_id}", "title": say(self.hass, "why_btn_other"), "behavior": "textInput", "textInputButtonTitle": say(self.hass, "why_send")}],
+            answering=answering,
         )
 
     async def async_set_wellbeing(self, enabled: bool) -> None:
@@ -1115,7 +1134,7 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
             return
         feeling = action[len(ASK_ACTION):-len(self._entry.entry_id) - 1]
         if feeling in FEELINGS:
-            await self.async_feel(feeling)
+            await self.async_feel(feeling, "push")
 
     async def _on_push_reason(self, event: Event) -> None:
         """A button of the follow-up question was tapped, or something was written."""
@@ -1126,13 +1145,16 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         if reason in (*REASONS, "normal"):
             await self.async_explain_feeling(reason, event.data.get("reply_text"))
 
-    async def async_ask(self, title: str, message: str, actions: list[dict] | None = None) -> None:
-        """Push the question with one button per feeling, only to someone at home without a focus mode."""
+    async def async_ask(self, title: str, message: str, actions: list[dict] | None = None, answering: bool = False) -> None:
+        """Push the question with one button per feeling, only to someone at home without a focus mode.
+
+        A follow-up to an answer just given on the phone always goes out: whoever answered is awake.
+        """
         presence = self.conf.get(CONF_PRESENCE)
         quiet = self.conf.get(CONF_QUIET)
-        if presence and not self.hass.states.is_state(presence, "home"):
+        if not answering and presence and not self.hass.states.is_state(presence, "home"):
             return
-        if quiet and self.hass.states.is_state(quiet, STATE_ON):
+        if not answering and quiet and self.hass.states.is_state(quiet, STATE_ON):
             return
         actions = actions or [{"action": f"{ASK_ACTION}{feeling}_{self._entry.entry_id}", "title": say(self.hass, f"feel_{feeling}")} for feeling in FEELINGS]
         await self.async_notify(title, message, extra={"actions": actions})
@@ -1308,8 +1330,11 @@ class ThermGenieClimate(ClimateEntity, RestoreEntity):
         regulated = [d for d in devices if d.regulated]
         room = self._reference("heat")
         if regulated and room is not None:
+            kept = planner.learned()
             wanted = planner.plan(now.timestamp(), room, self._control_target(now), self._outdoor_or_default(), self._flow())
             planner.command(now.timestamp(), wanted)
+            if planner.learned() != kept:
+                self._save_learned()  # what the room needs must survive a restart, also while the model rests
         else:
             planner.reset()
             # What the valves got instead counts as the last move

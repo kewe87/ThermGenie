@@ -255,8 +255,8 @@ ThermGenie laufend ein kleines Wärmemodell des Raums: wie stark die Heizkörper
 wie schnell der Raum nach außen Wärme verliert und wie träge die Heizkörper sind. Mit diesem Modell plant es die
 Öffnung zwei Stunden voraus und schließt rechtzeitig, bevor der Raum überschwingt. Bis das Modell den Raum kennt,
 meist nach zwei bis drei Tagen, regelt ein einfacher Regler die Ventile. Auch er schaut voraus: Steigt der
-Raum schnell, bremst er nach dem Stand, den der Raum mit dem Nachheizen der Heizkörper erreichen wird. Das Gelernte bleibt über Neustarts erhalten
-und erscheint als Sensor *Ventilöffnung*, samt Kurve der nötigen Öffnung je Außentemperatur.
+Raum schnell, bremst er nach dem Stand, den der Raum mit dem Nachheizen der Heizkörper erreichen wird. Das Gelernte bleibt über Neustarts
+erhalten, auch was der einfache Regler über die nötige Öffnung herausgefunden hat, und erscheint als Sensor *Ventilöffnung*, samt Kurve der nötigen Öffnung je Außentemperatur.
 
 Das Thermostat behält den Sollwert als Rückfall. Fällt der Raumfühler aus, bekommt es sein Ventil zurück und regelt
 selbst. Bei offenem Fenster, ausgeschalteter Heizung oder warmem Tag schließt das Ventil. Heizkörper ohne
@@ -308,7 +308,11 @@ mit. Auch im Thermostat-Betrieb lernt ThermGenie mit: ein von Hand verstellter S
 Antwort ihn hingeschickt hat, und das so lange, bis sich die Antworten zu einer Tageszeit einpendeln. Danach fragt es
 dort nicht mehr. Bei offenem Fenster fragt es nicht, und Antworten bei offenem Fenster werden zwar gespeichert, aber
 nicht gelernt. Weicht eine Antwort deutlich von dem ab, was für diese Zeit schon gelernt ist, kommt eine zweite Frage:
-Ist gerade etwas Besonderes? Zur Wahl stehen Besuch, Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
+Ist gerade etwas Besonderes? Bei „zu warm“ und „kalt“ zweifelt ThermGenie schon früher, und auch dann, wenn derselbe
+Raum vor kurzem noch ganz anders beantwortet wurde, etwa eine Wärmequelle, von der es nichts weiß. Die Frage kommt dort,
+wo geantwortet wurde: Auf der Karte im Dashboard öffnet sich auf genau diesem Bildschirm das Popup mit der Frage, nach
+einer Antwort per Push kommt sie per Push, auch im Fokus-Modus, nach dem Drehknopf oder Alexa ohne Bildschirm ebenfalls
+per Push. Zur Wahl stehen Besuch, Sport, krank, gerade heimgekommen, ein eigener Grund zum Eintippen oder
 „ganz normal“. Mit einem besonderen Grund zählt die Antwort nicht dauerhaft, bei Besuch und krank nur für heute, und auch alle weiteren Antworten bis zum nächsten Morgen wirken, ohne gelernt zu werden. Im Popup beendet *Wieder normal* das vorher. So lernt
 ThermGenie den Alltag und nicht die Ausnahmen.
 

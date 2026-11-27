@@ -164,3 +164,13 @@ def test_what_the_room_needs_survives_a_restart_and_airing():
     assert restarted.plan(0.0, 20.0, 20.0, 3.0, None) < 15.0  # not the wide opening of a fresh start
     model.reset()
     assert planner.pi_integral is None
+
+
+def test_the_correction_of_the_plan_survives_a_restart():
+    model = RoomModel()
+    planner = ValvePlanner(model)
+    planner.trim = 4.0
+    planner.reset()  # airing or a pause starts the measurement again
+    assert planner.trim == 4.0
+    again = ValvePlanner(RoomModel(model.as_dict()))
+    assert again.trim == 4.0

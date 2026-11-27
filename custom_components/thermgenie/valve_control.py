@@ -145,6 +145,7 @@ class RoomModel:
         # afresh from the outdoor temperature every time, a strong radiator in a small room
         # opened far too wide and overshot after each restart
         self.pi_integral: float | None = data.get("pi_integral")
+        self.trim = float(data.get("trim", 0.0))  # the correction of the planned opening, kept as well
         self.bias = 0.0  # K/h the model was off lately, corrects the plan until the fit catches up
         self._window: deque[_Sample] = deque()
         self._last: float | None = None
@@ -269,6 +270,7 @@ class RoomModel:
             "cooling_samples": self.cooling_samples,
             "flow_mean": self.flow_mean,
             "pi_integral": None if self.pi_integral is None else round(self.pi_integral, 2),
+            "trim": round(self.trim, 2),
         }
 
 
@@ -277,7 +279,6 @@ class ValvePlanner:
 
     def __init__(self, model: RoomModel) -> None:
         self.model = model
-        self.trim = 0.0
         self.last_valve: float | None = None
         self.last_time: float | None = None
         self.mode = "pi"
@@ -292,9 +293,20 @@ class ValvePlanner:
     def pi_integral(self, value: float | None) -> None:
         self.model.pi_integral = value
 
+    @property
+    def trim(self) -> float:
+        return self.model.trim
+
+    @trim.setter
+    def trim(self, value: float) -> None:
+        self.model.trim = value
+
+    def learned(self) -> tuple[float, float]:
+        """What the planner keeps across restarts, to tell when it is worth saving."""
+        return (round(self.pi_integral or 0.0), round(self.trim * 2) / 2)
+
     def reset(self) -> None:
         """Start the measurement again. What the room needs stays, only forgetting the model clears it."""
-        self.trim = 0.0
         self.last_time = None
         self.trend.clear()
         self.forecast = None

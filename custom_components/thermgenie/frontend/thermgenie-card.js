@@ -75,9 +75,23 @@ const TENDENCY = { warming: ["mdi:arrow-top-right", "warming", "heat"], holding:
 const wellbeing = (state) => !!state?.attributes.wellbeing;
 // The face of an answer shows while the room acts on it, then it is neutral again
 const face = (state) => FACES[state.attributes.feel?.showing] || FACES.good;
+// When this screen gave an answer: an unusual one gets its question here and on no other screen
+const tapped = {};
+const askedHere = {};
 function feel(entityId, feeling) {
   haptic();
+  tapped[entityId] = Date.now() / 1000;
   call("feel", { entity_id: entityId, feeling }, null, "thermgenie");
+}
+// Whether the question why belongs to an answer given on this screen and was not shown yet
+function askHere(hass, state) {
+  const f = state.attributes.feel || {};
+  const at = tapped[state.entity_id];
+  if (!f.checking || f.checking_via !== "dashboard" || !at || askedHere[state.entity_id] === f.checking_at) return false;
+  if (f.checking_user && hass.user?.id && f.checking_user !== hass.user.id) return false;
+  if (Math.abs(f.checking_at - at) > 120) return false;
+  askedHere[state.entity_id] = f.checking_at;
+  return true;
 }
 const MODE_ICONS = { off: "mdi:power", heat: "mdi:fire", cool: "mdi:snowflake", dry: "mdi:water-percent", fan_only: "mdi:fan" };
 const PRESET_ICONS = { frost: "mdi:snowflake-thermometer", eco: "mdi:leaf", comfort: "mdi:sofa", boost: "mdi:rocket-launch" };
@@ -271,6 +285,8 @@ class ThermGenieCard extends HTMLElement {
         ${well ? "" : `<span class="room"><small>${text(hass, "room")}</small>${degrees(hass, a.room_temperature ?? a.current_temperature)}</span>`}
       </button>
       ${controls}`);
+    // Answered here with the small buttons: the popup brings the question why
+    if (askHere(hass, state) && ThermGeniePopup.current?.entityId !== this.config.entity) ThermGeniePopup.open(this.config.entity);
   }
 
   build() {

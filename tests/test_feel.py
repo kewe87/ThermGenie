@@ -218,3 +218,32 @@ def test_a_visit_lasts_until_the_next_morning():
     assert learner.status(next_day)["special"] is None
     learner.feel("good", 21.0, 21.0, next_day)
     assert learner.answers[-1].reason is None
+
+
+def test_far_too_warm_is_doubted_sooner_than_a_bit_warm():
+    learner = FeelLearner()
+    _settled_evening(learner)
+    m = Moment(1_800_000_000 + 4 * 86400, 19.0, False, 5.0, "heat_comfort", 21.0)
+    learner.feel("warm", 21.4, 21.0, m)  # a bit warm, a little off: nothing to ask
+    assert learner.checking is None
+    learner = FeelLearner()
+    _settled_evening(learner)
+    learner.feel("hot", 20.9, 21.0, m)  # far too warm, as far off: a heat source nobody knows of?
+    assert learner.checking is not None
+
+
+def test_far_too_warm_out_of_the_blue_is_doubted():
+    learner = FeelLearner()  # nothing learned for this moment yet
+    m = Moment(1_800_000_000, 14.0, False, 2.0, "heat_comfort", 21.0)
+    learner.feel("good", 21.0, 21.0, m)
+    assert learner.checking is None
+    learner.feel("hot", 21.0, 21.0, Moment(m.now + 3600, 15.0, False, 2.0, "heat_comfort", 21.0))
+    assert learner.checking is not None
+
+
+def test_a_quick_correction_is_not_doubted_as_a_jump():
+    learner = FeelLearner()
+    m = Moment(1_800_000_000, 14.0, False, 2.0, "heat_comfort", 21.0)
+    learner.feel("cold", 21.0, 21.0, m)
+    learner.feel("hot", 21.0, 21.0, Moment(m.now + 30, 14.0, False, 2.0, "heat_comfort", 21.0))
+    assert learner.checking is None

@@ -255,7 +255,7 @@ learning a small heat model of the room: how strongly the radiators heat at whic
 loses heat to the outside and how slow the radiators are. With it, the opening is planned two hours ahead and the valve
 closes in time before the room overshoots. Until the model knows the room, usually after two to three days, a simple
 regulator drives the valves. It looks ahead too: when the room rises fast, it brakes by where the afterglow of
-the radiators will take it. What was learned survives restarts and shows up as the sensor *Valve opening*,
+the radiators will take it. What was learned survives restarts, also what the simple regulator found out about the opening needed, and shows up as the sensor *Valve opening*,
 including a curve of the opening needed per outdoor temperature.
 
 The thermostat keeps the setpoint as a fallback. If the room sensor fails, it gets its valve back and regulates on its
@@ -305,7 +305,11 @@ ThermGenie learns as well: a setpoint changed by hand counts as a quiet answer.
 **Asking.** After a change ThermGenie asks by push once the room has been where the answer sent it for about an hour,
 until the answers around a time of day settle. Then it no longer asks there. It does not ask with the window open, and
 answers with the window open are kept but not learned. If an answer is far from what was learned for this time, a
-second question follows: is something special going on? The choice is guests, sport, unwell, just got home, a reason of one's
+second question follows: is something special going on? For "too warm" and "cold" ThermGenie doubts sooner, and also
+when the same room was answered quite differently a short while ago, for example a heat source it does not know of. The
+question comes where the answer was given: on a dashboard card the popup with the question opens on exactly that screen,
+after an answer by push it comes by push, also in a focus mode, and after the knob or Alexa, which have no screen, by push
+as well. The choice is guests, sport, unwell, just got home, a reason of one's
 own to type in, or "all normal". With a special reason the answer does not count for later, with guests or when unwell only for today, and all further answers until the next morning act without being learned. *Back to normal* in the popup ends that earlier.
 This way ThermGenie learns the everyday and not the exceptions.
 

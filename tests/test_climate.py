@@ -1180,3 +1180,62 @@ async def test_safety_net_gives_the_valve_the_room_temperature_and_a_setpoint_ab
     hass.states.async_set(SENSOR, "19.5")
     await service(hass, "set_temperature", temperature=21.0)
     assert radio.numbers("number.wz_external_temperature_input")[-1] == 19.5
+
+
+async def _unusual_setup(hass):
+    devices(hass)
+    pushes = []
+
+    async def _push(call: ServiceCall):
+        pushes.append(call.data)
+
+    hass.services.async_register("notify", "phone", _push)
+    hass.states.async_set("input_boolean.focus", "on")  # a focus mode keeps ordinary questions away
+    entry = await setup(hass, notify_service="notify.phone", quiet_entity="input_boolean.focus")
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    return entry, pushes
+
+
+async def test_an_unusual_answer_on_a_dashboard_asks_there_not_by_push(hass, radio):
+    from homeassistant.core import Context
+
+    entry, pushes = await _unusual_setup(hass)
+    tablet = await hass.auth.async_create_user("Tablet")
+    with patch("custom_components.thermgenie.feel.FeelLearner._unusual", return_value=True):
+        await hass.services.async_call("thermgenie", "feel", {"entity_id": ENTITY, "feeling": "hot"}, blocking=True, context=Context(user_id=tablet.id))
+        await hass.async_block_till_done()
+    feel = hass.states.get(ENTITY).attributes["feel"]
+    assert feel["checking"] is True
+    assert (feel["checking_via"], feel["checking_user"]) == ("dashboard", tablet.id)
+    assert pushes == []
+
+
+async def test_an_unusual_answer_by_push_gets_its_question_by_push_even_in_a_focus_mode(hass, radio):
+    entry, pushes = await _unusual_setup(hass)
+    action = f"THERMGENIE_FEEL_hot_{entry.entry_id}"
+    with patch("custom_components.thermgenie.feel.FeelLearner._unusual", return_value=True):
+        hass.bus.async_fire("mobile_app_notification_action", {"action": action})
+        await hass.async_block_till_done()
+    assert len(pushes) == 1
+    assert any(a["action"].startswith("THERMGENIE_WHY_") for a in pushes[0]["data"]["actions"])
+    assert hass.states.get(ENTITY).attributes["feel"]["checking_via"] == "push"
+
+
+async def test_a_thermostat_falling_into_its_own_schedule_is_no_turn_of_the_knob(hass, radio):
+    devices(hass)
+    await setup(hass)
+    await service(hass, "set_temperature", temperature=21.0, hvac_mode="heat")
+    await hass.services.async_call("thermgenie", "set_wellbeing", {"entity_id": ENTITY, "enabled": True}, blocking=True)
+    await hass.async_block_till_done()
+    later = dt_util.utcnow() + timedelta(minutes=2)
+    with patch("homeassistant.util.dt.utcnow", return_value=later):
+        old = hass.states.get(WZ)
+        command = hass.states.get(ENTITY).attributes["devices"][WZ]["command"]
+        hass.states.async_set(WZ, "auto", {**old.attributes, "temperature": command})
+        await hass.async_block_till_done()
+        hass.states.async_set(WZ, "auto", {**old.attributes, "temperature": 16.0})  # its own schedule
+        await hass.async_block_till_done()
+    async_fire_time_changed(hass, later + timedelta(seconds=10))
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.wohnbereich_feeling").state != "hot"

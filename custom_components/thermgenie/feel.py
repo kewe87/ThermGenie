@@ -49,6 +49,9 @@ SUPPORT = ((2.5, "high"), (1.0, "medium"), (0.3, "low"))  # weight of the answer
 # An answer far from what was learned is asked about: was there something special?
 UNUSUAL_K = 1.0  # K between the answer and what was learned for this moment
 UNUSUAL_SUPPORT = 1.0  # only once enough answers speak for this moment
+STRONG = ("cold", "hot")
+UNUSUAL_STRONG_K = 0.75  # far too warm or cold is doubted sooner: a heat source nobody knows of
+JUMP_SEC = 3 * 3600  # far too warm or cold this soon after a different answer is doubted as well
 CHECK_SEC = 30 * 60  # the reason may come this long after the answer
 # Reasons that make an answer not count for later; unwell and guests still count for today
 REASONS = ("sport", "unwell", "guests", "arrived", "window", "other")
@@ -207,8 +210,7 @@ class FeelLearner:
             self.pending = feeling != "good"
             self.ask_at = None
             return self.target(m)
-        learned = m.base + self.learned_diff(m)
-        unusual = self.support(m) >= UNUSUAL_SUPPORT and abs(right - learned) >= UNUSUAL_K
+        unusual = self._unusual(feeling, right, m)
         before = {"form": self.day_form, "form_at": self.day_form_at}
         self._take(right, m)
         self.checking = {"at": m.now, **before} if unusual else None
@@ -216,6 +218,23 @@ class FeelLearner:
         self.pending = feeling != "good"
         self.ask_at = None if feeling == "good" and self.settled(m.hour) else m.now
         return self.target(m)
+
+    def _unusual(self, feeling: str, right: float, m: Moment) -> bool:
+        """Return whether an answer does not fit what was learned and deserves the question why."""
+        strong = feeling in STRONG
+        learned = m.base + self.learned_diff(m)
+        if self.support(m) >= UNUSUAL_SUPPORT and abs(right - learned) >= (UNUSUAL_STRONG_K if strong else UNUSUAL_K):
+            return True
+        if not strong:
+            return False
+        # Out of the blue: a while ago the same room was answered quite differently
+        last = next((a for a in reversed(self.answers) if a.weight == 1.0 and not a.reason), None)
+        return (
+            last is not None
+            and CORRECTION_SEC <= m.now - last.time <= JUMP_SEC
+            and last.preset == m.preset
+            and abs(right - (m.base + last.diff)) >= UNUSUAL_K
+        )
 
     def explain(self, reason: str, m: Moment) -> bool:
         """The reason for an unusual answer: normal keeps it, anything else takes it out of what is learned."""
@@ -303,6 +322,10 @@ class FeelLearner:
             "asking": self.ask_at is not None,
             "outlook": self.outlook(m),
             "checking": self.checking is not None and m.now - self.checking["at"] <= CHECK_SEC,
+            # where the question shows: the card of the user who answered on a dashboard
+            "checking_at": self.checking["at"] if self.checking else None,
+            "checking_via": self.checking.get("via") if self.checking else None,
+            "checking_user": self.checking.get("user") if self.checking else None,
             "exceptions": self.exceptions(),
             "special": self.special if self.special_until and m.now < self.special_until else None,
         }

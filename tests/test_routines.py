@@ -726,3 +726,31 @@ async def test_a_valve_that_stays_open_gets_a_warning_after_the_waiting_time(has
     hass.states.async_set("sensor.ventil", "0")
     await hass.async_block_till_done()
     assert hass.states.get(problem).state == "off"
+
+
+async def test_an_alarm_days_ahead_leaves_the_weekend_to_the_fixed_time(hass, radio, freezer):
+    devices(hass)
+    freezer.move_to(NOW)
+    local = dt_util.as_local(NOW)
+    # Monday's alarm is set already on Friday: Saturday still heats up at the fixed time
+    hass.states.async_set("input_datetime.wecker", "x", {"timestamp": (NOW + timedelta(days=2)).timestamp()})
+    await setup(hass, wake_entity="input_datetime.wecker", wake_fallback_on=True, wake_fallback=(local + timedelta(minutes=3)).strftime("%H:%M:00"), period_min=2)
+    await service(hass, "set_hvac_mode", hvac_mode="heat")
+    await service(hass, "set_preset_mode", preset_mode="eco")
+    status = hass.states.get(ENTITY).attributes["routines"]
+    assert status["wake_alarm"] is True
+    assert dt_util.as_local(dt_util.parse_datetime(status["wake_at"])).strftime("%H:%M") == (local + timedelta(minutes=3)).strftime("%H:%M")
+    for _ in range(4):
+        await tick(hass, freezer, 2)
+    assert hass.states.get(ENTITY).attributes["preset_mode"] == "comfort"
+
+
+async def test_an_alarm_before_the_fixed_time_goes_first(hass, radio, freezer):
+    devices(hass)
+    freezer.move_to(NOW)
+    local = dt_util.as_local(NOW)
+    alarm = NOW + timedelta(minutes=50)
+    hass.states.async_set("input_datetime.wecker", "x", {"timestamp": alarm.timestamp()})
+    await setup(hass, wake_entity="input_datetime.wecker", wake_fallback_on=True, wake_fallback=(local + timedelta(hours=2)).strftime("%H:%M:00"))
+    status = hass.states.get(ENTITY).attributes["routines"]
+    assert dt_util.parse_datetime(status["wake_at"]) == alarm - timedelta(minutes=45)

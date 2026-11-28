@@ -351,7 +351,9 @@ Ein von Hand gesetzter Sollwert gilt, bis Schlaf oder Anwesenheit wirklich wechs
 | **Auslöser** | Weckzeit minus *Vorheizen vor dem Wecker* (Standard 45 Minuten) |
 | **Verhalten** | Wechsel auf Komfort, sofern nicht bereits aktiv |
 
-Ist kein künftiger Wecker gestellt, gilt die feste Zeit *Vorheizen ohne Wecker um* (Standard 07:15), wenn Sie dies wünschen.
+An Morgen ohne Wecker gilt die feste Zeit *Vorheizen ohne Wecker um* (Standard 07:15), wenn Sie dies wünschen. Es zählt,
+was zuerst kommt: Ein Wecker, der erst in ein paar Tagen klingelt, etwa der für Montag, der schon am Freitag gestellt
+wird, lässt das Wochenende dazwischen bei der festen Zeit.
 Mit *Uhrzeit aus Entität* kommt sie aus einer Entität und hat dann Vorrang. Hat der Wecker heute bereits geklingelt, gilt die
 feste Zeit erst wieder morgen. Der Sensor *Nächstes Aufheizen* zeigt den Zeitpunkt.
 

@@ -67,6 +67,8 @@ def _clock(value: str) -> tuple[int, int]:
     return int(hour), int(minute)
 
 
+FIXED_GRACE = timedelta(minutes=30)  # the fixed time of today still counts this long after, so the routine can act on it
+
 class Routines:
     """Sleep, wake-up, way home, heat guard, drying limit, boost time and the night cascade."""
 
@@ -114,8 +116,9 @@ class Routines:
         if self.conf.get(CONF_WAKE) or self.conf[CONF_WAKE_FALLBACK_ON]:
             alarm = self._alarm(now)
             moment = self._wake_moment(now)
-            if moment is not None and not alarm and moment <= now:
-                moment += timedelta(days=1)
+            ahead_of_alarm = alarm is not None and moment == alarm - timedelta(minutes=self.conf[CONF_WAKE_LEAD])
+            if moment is not None and not ahead_of_alarm and moment <= now:
+                moment += timedelta(days=1)  # the fixed time of today is done
             status["wake_at"] = moment.isoformat() if moment else None
             status["wake_alarm"] = alarm is not None
         if self.conf.get(CONF_AIR_FAN):
@@ -286,10 +289,9 @@ class Routines:
     def _wake_moment(self, now: datetime) -> datetime | None:
         """Return when to heat up: ahead of a future alarm, else at the fixed time if that is wanted."""
         alarm = self._alarm(now)
-        if alarm is not None:
-            return alarm - timedelta(minutes=self.conf[CONF_WAKE_LEAD])
+        before_alarm = alarm - timedelta(minutes=self.conf[CONF_WAKE_LEAD]) if alarm is not None else None
         if not self.conf[CONF_WAKE_FALLBACK_ON]:
-            return None
+            return before_alarm
         hour, minute = self._fixed_clock()
         local = dt_util.as_local(now)
         moment = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -298,6 +300,12 @@ class Routines:
         stamp = state.attributes.get("timestamp") if state else None
         if stamp and dt_util.as_local(dt_util.utc_from_timestamp(stamp)).date() == local.date():
             moment += timedelta(days=1)
+        elif moment <= now - FIXED_GRACE:
+            moment += timedelta(days=1)  # long past today: the next one is tomorrow's
+        # Whatever comes first: an alarm set days ahead (Monday's, set on Friday) leaves the
+        # mornings without an alarm in between to the fixed time
+        if before_alarm is not None and before_alarm <= moment:
+            return before_alarm
         return moment
 
     async def _async_wake_up(self, now: datetime) -> None:

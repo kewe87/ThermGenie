@@ -349,7 +349,9 @@ hand holds until sleep or presence really change, and it also survives a restart
 | **Trigger** | Alarm time minus *Heat up before the alarm* (default 45 minutes) |
 | **Behavior** | Changes to Comfort, unless already active |
 
-Without a future alarm, the fixed time *Heat up without an alarm at* (default 07:15) applies, if you want that. With *Time from an
+On mornings without an alarm, the fixed time *Heat up without an alarm at* (default 07:15) applies, if you want that.
+Whatever comes first counts: an alarm that rings only in a few days, such as Monday's set already on Friday, leaves the
+weekend in between to the fixed time. With *Time from an
 entity* it comes from an entity, which then takes priority. If the alarm has already rung today, the fixed time only applies again
 tomorrow. The sensor *Next heating up* shows the moment.
 

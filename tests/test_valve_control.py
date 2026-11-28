@@ -149,6 +149,27 @@ def test_a_room_that_stayed_too_warm_does_not_reopen_at_the_old_level():
     assert planner.pi_integral < held - 3.0  # but from a lower base than before the overshoot
 
 
+def test_a_warm_evening_does_not_leave_the_night_without_heat():
+    planner = ValvePlanner(_NotReady())
+    planner.plan(0.0, 21.0, 21.0, 3.0, 60.0)
+    for i in range(1, 41):  # four hours far above the target, valve shut
+        assert planner.plan(i * 360.0, 23.5, 21.0, 3.0, 60.0) == 0.0
+    assert planner.pi_integral >= 0.5 * 1.5 * (21.0 - 3.0) - 0.01  # not bled to nothing
+    for i in range(41, 70):  # the night target is lower, the room cools down to it
+        planner.plan(i * 360.0, 21.0, 19.0, 3.0, 60.0)
+    opening = planner.plan(70 * 360.0, 18.8, 19.0, 3.0, 60.0)
+    assert opening >= 15.0  # a little below the night target it heats right away, not after hours
+
+
+def test_a_room_kept_warm_by_itself_does_not_build_the_floor_up():
+    planner = ValvePlanner(_NotReady())
+    planner.plan(0.0, 20.0, 20.0, 3.0, 60.0)
+    planner.pi_integral = 2.0  # learned: the room hardly needs heat
+    for i in range(1, 20):
+        planner.plan(i * 360.0, 20.5, 20.0, 3.0, 60.0)
+    assert planner.pi_integral == pytest.approx(2.0)
+
+
 def test_what_the_room_needs_survives_a_restart_and_airing():
     model = RoomModel()
     planner = ValvePlanner(model)

@@ -255,7 +255,9 @@ learning a small heat model of the room: how strongly the radiators heat at whic
 loses heat to the outside and how slow the radiators are. With it, the opening is planned two hours ahead and the valve
 closes in time before the room overshoots. Until the model knows the room, usually after two to three days, a simple
 regulator drives the valves. It looks ahead too: when the room rises fast, it brakes by where the afterglow of
-the radiators will take it. What was learned survives restarts, also what the simple regulator found out about the opening needed, and shows up as the sensor *Valve opening*,
+the radiators will take it. A long warm spell, say a warm evening, does not make it forget the room needs heat at all: it keeps
+half of a rough need from the outdoor temperature, so it heats again right away when the room drops below the
+night target. What was learned survives restarts, also what the simple regulator found out about the opening needed, and shows up as the sensor *Valve opening*,
 including a curve of the opening needed per outdoor temperature.
 
 The thermostat keeps the setpoint as a fallback. If the room sensor fails, it gets its valve back and regulates on its
